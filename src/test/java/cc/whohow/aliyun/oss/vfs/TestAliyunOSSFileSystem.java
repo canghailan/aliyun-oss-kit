@@ -1,17 +1,51 @@
 package cc.whohow.aliyun.oss.vfs;
 
+import cc.whohow.aliyun.oss.AliyunOSS;
+import cc.whohow.aliyun.oss.AliyunOSSUri;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.VFS;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.Comparator;
 import java.util.NavigableMap;
+import java.util.Properties;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class TestAliyunOSSFileSystem {
+    private static String accessKeyId = "";
+    private static String secretAccessKey = "";
+    private static String bucketName = "yt-temp";
+    private static String endpoint = "oss-cn-hangzhou.aliyuncs.com";
+
+    @BeforeClass
+    @SuppressWarnings("all")
+    public static void setup() throws Exception {
+        try (InputStream stream = new FileInputStream("oss.properties")) {
+            Properties properties = new Properties();
+            properties.load(stream);
+            accessKeyId = properties.getProperty("accessKeyId");
+            secretAccessKey = properties.getProperty("secretAccessKey");
+        }
+
+        AliyunOSS.configure(new AliyunOSSUri(accessKeyId, secretAccessKey, bucketName, endpoint, null));
+        AliyunOSSVirtualFileSystem vfs = new AliyunOSSVirtualFileSystem();
+        VFS.setManager(vfs);
+    }
+
+    @Test
+    public void testVirtualFileSystem() throws Exception {
+        FileObject temp = VFS.getManager().resolveFile("oss://yt-temp/temp/");
+        for (FileObject file : temp) {
+            System.out.println(file);
+        }
+    }
+
     @Test
     public void testFileName() throws Exception {
         System.out.println(new AliyunOSSFileName("oss://yt-temp/a/b/c"));
@@ -112,13 +146,5 @@ public class TestAliyunOSSFileSystem {
         System.out.println();
         junctions.tailMap("oss://a1/b2/c")
                 .keySet().forEach(System.out::println);
-    }
-
-    @Test
-    public void testVirtualFileSystem() throws Exception {
-        AliyunOSSVirtualFileSystem vfs = new AliyunOSSVirtualFileSystem();
-        VFS.setManager(vfs);
-
-        vfs.addJunction("/temp/", vfs.resolveFile("oss://yt-temp/"));
     }
 }

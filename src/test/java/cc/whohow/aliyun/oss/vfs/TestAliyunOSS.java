@@ -15,6 +15,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Date;
+import java.util.Properties;
 
 public class TestAliyunOSS {
     private static String accessKeyId = "";
@@ -22,9 +23,16 @@ public class TestAliyunOSS {
     private static String bucketName = "yt-temp";
     private static String endpoint = "oss-cn-hangzhou.aliyuncs.com";
 
-
     @BeforeClass
-    public static void setup() {
+    @SuppressWarnings("all")
+    public static void setup() throws Exception {
+        try (InputStream stream = new FileInputStream("oss.properties")) {
+            Properties properties = new Properties();
+            properties.load(stream);
+            accessKeyId = properties.getProperty("accessKeyId");
+            secretAccessKey = properties.getProperty("secretAccessKey");
+        }
+
         AliyunOSS.configure(new AliyunOSSUri(accessKeyId, secretAccessKey, bucketName, endpoint, null));
     }
 

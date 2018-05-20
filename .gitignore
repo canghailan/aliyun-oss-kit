@@ -1,5 +1,6 @@
 .idea/
 target/
-*.iml
-.DS_Store
 temp/
+*.iml
+*.properties
+.DS_Store
