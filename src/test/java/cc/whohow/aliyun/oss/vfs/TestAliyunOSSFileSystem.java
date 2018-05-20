@@ -2,9 +2,13 @@ package cc.whohow.aliyun.oss.vfs;
 
 import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.AliyunOSSUri;
+import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
+import com.aliyun.oss.model.ImageProcess;
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.VFS;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -22,6 +26,7 @@ public class TestAliyunOSSFileSystem {
     private static String secretAccessKey = "";
     private static String bucketName = "yt-temp";
     private static String endpoint = "oss-cn-hangzhou.aliyuncs.com";
+    private static FileSystemManager vfs;
 
     @BeforeClass
     @SuppressWarnings("all")
@@ -34,16 +39,34 @@ public class TestAliyunOSSFileSystem {
         }
 
         AliyunOSS.configure(new AliyunOSSUri(accessKeyId, secretAccessKey, bucketName, endpoint, null));
-        AliyunOSSVirtualFileSystem vfs = new AliyunOSSVirtualFileSystem();
+        vfs = new AliyunOSSVirtualFileSystem();
         VFS.setManager(vfs);
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        AliyunOSS.shutdown();
     }
 
     @Test
     public void testVirtualFileSystem() throws Exception {
-        FileObject temp = VFS.getManager().resolveFile("oss://yt-temp/temp/");
+        FileObject temp = vfs.resolveFile("oss://yt-temp/temp/");
         for (FileObject file : temp) {
             System.out.println(file);
         }
+    }
+
+    @Test
+    public void testImageCompress() throws Exception {
+        FileObject file = vfs.resolveFile("oss://yt-temp/temp/0025802e-11d5-4eb8-879e-c04cc2588edd.jpg");
+        System.out.println(file);
+        System.out.println(file.getName().getBaseName());
+        System.out.println(file.getName().getExtension());
+        System.out.println(file.getName().getPath());
+        System.out.println(file.getName().getParent());
+        System.out.println(file.getName().getType());
+        System.out.println(file.getPublicURIString());
+        System.out.println(file.getFileOperations().getOperation(ProcessImage.class));
     }
 
     @Test

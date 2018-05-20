@@ -374,7 +374,7 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
      * 获取展示地址
      */
     public String getPublicURIString() {
-        return AliyunOSS.getCnameUrl(getName());
+        return AliyunOSS.getUrl(getName());
     }
 
     /**
