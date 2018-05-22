@@ -54,7 +54,6 @@ public class AliyunOSSWatcher implements Callable<Map<String, DiffStatus>> {
             }
             return DIFF.diff(oldETags, newETags);
         } catch (Exception e) {
-            e.printStackTrace();
             return Collections.emptyMap();
         }
     }
