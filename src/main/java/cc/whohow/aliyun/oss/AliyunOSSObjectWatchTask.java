@@ -24,7 +24,9 @@ public class AliyunOSSObjectWatchTask implements Runnable {
     @Override
     public void run() {
         for (Map.Entry<String, DiffStatus> diff : diff.call().entrySet()) {
-            listener.accept(diff.getValue(), resolve(diff.getKey()));
+            if (diff.getValue() != DiffStatus.NOT_MODIFIED) {
+                listener.accept(diff.getValue(), resolve(diff.getKey()));
+            }
         }
     }
 }
