@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 阿里云 OSS 全局配置及缓存
@@ -194,9 +195,24 @@ public class AliyunOSS {
     }
 
     /**
+     * 获取OSS对象
+     */
+    public static AliyunOSSObjectAsync getAliyunOSSObjectAsync(String uri) {
+        return getAliyunOSSObjectAsync(new AliyunOSSUri(uri));
+    }
+
+    /**
+     * 获取OSS对象
+     */
+    public static AliyunOSSObjectAsync getAliyunOSSObjectAsync(AliyunOSSUri uri) {
+        return new AliyunOSSObjectAsync(getOSS(uri), uri.getBucketName(), uri.getKey(), executor);
+    }
+
+    /**
      * 关闭并回收资源
      */
     public static void shutdown() {
+        shutdownSafety(executor);
         OSS_POOL.values().forEach(AliyunOSS::shutdownSafety);
     }
 
@@ -206,6 +222,19 @@ public class AliyunOSS {
     private static void shutdownSafety(OSS oss) {
         if (oss != null) {
             oss.shutdown();
+        }
+    }
+
+    /**
+     * 安全关闭客户端
+     */
+    private static void shutdownSafety(ScheduledExecutorService executor) {
+        if (executor != null) {
+            try {
+                executor.shutdownNow();
+                executor.awaitTermination(3, TimeUnit.SECONDS);
+            } catch (InterruptedException ignore) {
+            }
         }
     }
 

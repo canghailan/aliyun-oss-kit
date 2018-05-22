@@ -2,6 +2,7 @@ package cc.whohow.aliyun.oss.diff;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * diff工具
@@ -19,7 +20,7 @@ public class Diff<K, V> {
             V oldValue = oldValues.remove(key);
             if (oldValue == null) {
                 diffs.put(key, DiffStatus.ADDED);
-            } else if (oldValue.equals(newValue.getValue())) {
+            } else if (Objects.equals(oldValue, newValue.getValue())) {
                 if (all) {
                     diffs.put(key, DiffStatus.NOT_MODIFIED);
                 }
