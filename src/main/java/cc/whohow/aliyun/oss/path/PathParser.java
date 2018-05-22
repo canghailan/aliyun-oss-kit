@@ -29,7 +29,7 @@ public class PathParser {
         }
         if (iterator.afterLast().hasPrevious()) {
             return iterator.getNames()
-                    .subSequence(0, iterator.previousSeparatorIndex())
+                    .subSequence(0, iterator.previousSeparatorIndex() + 1)
                     .toString();
         }
         return null;

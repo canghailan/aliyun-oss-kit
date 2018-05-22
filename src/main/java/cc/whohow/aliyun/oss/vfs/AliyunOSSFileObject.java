@@ -277,23 +277,48 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
      * 查找文件
      */
     public FileObject[] findFiles(FileSelector selector) {
+        if (selector == Selectors.SELECT_SELF) {
+            return new FileObject[] {this};
+        }
         if (isFile()) {
             if (selector == Selectors.SELECT_ALL ||
-                    selector == Selectors.SELECT_SELF ||
                     selector == Selectors.SELECT_SELF_AND_CHILDREN ||
                     selector == Selectors.SELECT_FILES) {
-                // 查找所有文件快速方法
                 return new FileObject[]{this};
             }
         } else {
-            if (selector == Selectors.SELECT_ALL ||
-                    selector == Selectors.EXCLUDE_SELF ||
-                    selector == Selectors.SELECT_FILES) {
-                // 查找所有文件快速方法
-                return stream().toArray(FileObject[]::new);
+            if (selector == Selectors.SELECT_ALL) {
+                AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, true);
+                return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false)
+                        .toArray(FileObject[]::new);
+            } else if (selector == Selectors.SELECT_SELF_AND_CHILDREN) {
+                List<FileObject> files = new ArrayList<>();
+                files.add(this);
+                AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, false);
+                iterator.forEachRemaining(files::add);
+                return files.toArray(new FileObject[0]);
+            } else if (selector == Selectors.SELECT_CHILDREN) {
+                AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, false);
+                return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false)
+                        .toArray(FileObject[]::new);
+            } else if (selector == Selectors.EXCLUDE_SELF) {
+                return stream()
+                        .toArray(FileObject[]::new);
+            } else if (selector == Selectors.SELECT_FILES) {
+                return stream()
+                        .map(file -> (AliyunOSSFileObject) file)
+                        .filter(AliyunOSSFileObject::isFile)
+                        .toArray(FileObject[]::new);
+            } else if (selector == Selectors.SELECT_FOLDERS) {
+                return stream()
+                        .map(file -> (AliyunOSSFileObject) file)
+                        .filter(AliyunOSSFileObject::isFolder)
+                        .toArray(FileObject[]::new);
             }
         }
-        return findFiles(selector, false).stream().toArray(FileObject[]::new);
+        return findFiles(selector, false).stream()
+                .map(FileSelectInfo::getFile)
+                .toArray(FileObject[]::new);
     }
 
     /**
@@ -492,7 +517,7 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
 
     public Iterator<FileObject> iterator() {
         if (isFile()) {
-            return Collections.<FileObject>singleton(this).iterator();
+            return Collections.emptyIterator();
         }
         return new AliyunOSSFileObjectIterator(this, true);
     }

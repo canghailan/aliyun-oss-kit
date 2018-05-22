@@ -145,7 +145,7 @@ public class AliyunOSSFileName extends AliyunOSSUri implements FileName, Iterabl
      * 解析相对路径
      */
     public AliyunOSSFileName resolveRelative(String relative) {
-        String newKey = newBuilder().resolve(relative).toString();
+        String newKey = newBuilder().resolve(relative).startsWithSeparator(false).toString();
         return new AliyunOSSFileName(getBucketName(), newKey);
     }
 

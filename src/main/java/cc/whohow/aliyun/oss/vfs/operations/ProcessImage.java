@@ -23,4 +23,12 @@ public interface ProcessImage extends FileOperation, Supplier<FileObject> {
             throw new UndeclaredThrowableException(e);
         }
     }
+
+    static ProcessImage apply(FileObject fileObject) {
+        try {
+            return (ProcessImage) fileObject.getFileOperations().getOperation(ProcessImage.class);
+        } catch (FileSystemException e) {
+            throw new UndeclaredThrowableException(e);
+        }
+    }
 }

@@ -3,11 +3,7 @@ package cc.whohow.aliyun.oss.vfs;
 import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.AliyunOSSUri;
 import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
-import com.aliyun.oss.model.ImageProcess;
-import org.apache.commons.vfs2.FileObject;
-import org.apache.commons.vfs2.FileSystemManager;
-import org.apache.commons.vfs2.FileType;
-import org.apache.commons.vfs2.VFS;
+import org.apache.commons.vfs2.*;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -18,7 +14,6 @@ import java.io.InputStream;
 import java.util.Comparator;
 import java.util.NavigableMap;
 import java.util.Properties;
-import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class TestAliyunOSSFileSystem {
@@ -39,6 +34,8 @@ public class TestAliyunOSSFileSystem {
         }
 
         AliyunOSS.configure(new AliyunOSSUri(accessKeyId, secretAccessKey, bucketName, endpoint, null));
+        AliyunOSS.configureCname(new AliyunOSSUri("oss://yt-temp/test-fs/copy/"), "https://temp.yitong.com/test-fs/copy/");
+
         vfs = new AliyunOSSVirtualFileSystem();
         VFS.setManager(vfs);
     }
@@ -50,10 +47,112 @@ public class TestAliyunOSSFileSystem {
 
     @Test
     public void testVirtualFileSystem() throws Exception {
-        FileObject temp = vfs.resolveFile("oss://yt-temp/temp/");
-        for (FileObject file : temp) {
+        FileObject temp = vfs.resolveFile("oss://yt-temp/test-fs/");
+        System.out.println(temp);
+    }
+
+    @Test
+    public void testCopyFrom() throws Exception {
+        vfs.resolveFile("oss://yt-temp/test-fs/")
+                .copyFrom(vfs.resolveFile("oss://yt-temp/test-kit/pom.xml"), Selectors.SELECT_ALL);
+        vfs.resolveFile("oss://yt-temp/test-fs/sync/")
+                .copyFrom(vfs.resolveFile("oss://yt-temp/test-kit/sync/"), Selectors.SELECT_ALL);
+        vfs.resolveFile("oss://yt-temp/test-fs/copy/random.jpg")
+                .copyFrom(vfs.resolveFile("oss://yt-temp/test-kit/url/random.jpg"), Selectors.SELECT_ALL);
+        vfs.resolveFile("oss://yt-temp/test-fs/url/random.jpg")
+                .copyFrom(vfs.resolveFile("https://picsum.photos/200/300/?random"), Selectors.SELECT_ALL);
+    }
+
+    @Test
+    public void testDelete() throws Exception {
+        vfs.resolveFile("oss://yt-temp/test-fs/url/random.jpg").delete();
+        vfs.resolveFile("oss://yt-temp/test-fs/sync/src/test/").deleteAll();
+    }
+
+    @Test
+    public void testExists() throws Exception {
+        Assert.assertFalse(vfs.resolveFile("oss://yt-temp/test-fs/url/random.jpg").exists());
+        Assert.assertTrue(vfs.resolveFile("oss://yt-temp/test-fs/copy/random.jpg").exists());
+    }
+
+    @Test
+    public void testFindFiles() throws Exception {
+        System.out.println("SELECT_SELF");
+        for (FileObject file : vfs.resolveFile("oss://yt-temp/test-kit/").findFiles(Selectors.SELECT_SELF)) {
             System.out.println(file);
         }
+        System.out.println("SELECT_SELF_AND_CHILDREN");
+        for (FileObject file : vfs.resolveFile("oss://yt-temp/test-kit/").findFiles(Selectors.SELECT_SELF_AND_CHILDREN)) {
+            System.out.println(file);
+        }
+        System.out.println("SELECT_CHILDREN");
+        for (FileObject file : vfs.resolveFile("oss://yt-temp/test-kit/").findFiles(Selectors.SELECT_CHILDREN)) {
+            System.out.println(file);
+        }
+        System.out.println("EXCLUDE_SELF");
+        for (FileObject file : vfs.resolveFile("oss://yt-temp/test-kit/").findFiles(Selectors.EXCLUDE_SELF)) {
+            System.out.println(file);
+        }
+        System.out.println("SELECT_FILES");
+        for (FileObject file : vfs.resolveFile("oss://yt-temp/test-kit/").findFiles(Selectors.SELECT_FILES)) {
+            System.out.println(file);
+        }
+        System.out.println("SELECT_FOLDERS");
+        for (FileObject file : vfs.resolveFile("oss://yt-temp/test-kit/").findFiles(Selectors.SELECT_FOLDERS)) {
+            System.out.println(file);
+        }
+        System.out.println("SELECT_ALL");
+        for (FileObject file : vfs.resolveFile("oss://yt-temp/test-kit/").findFiles(Selectors.SELECT_ALL)) {
+            System.out.println(file);
+        }
+        System.out.println("FileDepthSelector(0, 2)");
+        for (FileObject file :  vfs.resolveFile("oss://yt-temp/test-kit/").findFiles(new FileDepthSelector(0, 2))) {
+            System.out.println(file);
+        }
+    }
+
+    @Test
+    public void testGetChild() throws Exception {
+        System.out.println(vfs.resolveFile("oss://yt-temp/test-fs/").getChild("pom.xml"));
+        System.out.println(vfs.resolveFile("oss://yt-temp/test-fs/").getChild("copy/"));
+    }
+
+    @Test
+    public void testGetChildren() throws Exception {
+        for (FileObject fileObject : vfs.resolveFile("oss://yt-temp/test-fs/").getChildren()) {
+            System.out.println(fileObject);
+        }
+    }
+
+    @Test
+    public void testGetContent() throws Exception {
+        System.out.println(vfs.resolveFile("oss://yt-temp/test-fs/copy/random.jpg")
+                .getContent().getContentInfo().getContentType());
+    }
+
+    @Test
+    public void testGetParent() throws Exception {
+        System.out.println(vfs.resolveFile("oss://yt-temp/test-fs/copy/random.jpg").getParent());
+    }
+
+    @Test
+    public void testGetPublicURIString() throws Exception {
+        System.out.println(vfs.resolveFile("oss://yt-temp/test-fs/copy/random.jpg").getPublicURIString());
+        System.out.println(vfs.resolveFile("oss://yt-temp/test-fs/pom.xml").getPublicURIString());
+    }
+
+    @Test
+    public void testGetType() throws Exception {
+        Assert.assertEquals(FileType.FILE, vfs.resolveFile("oss://yt-temp/test-fs/copy/random.jpg").getType());
+        Assert.assertEquals(FileType.FOLDER, vfs.resolveFile("oss://yt-temp/test-fs/copy/").getType());
+    }
+
+    @Test
+    public void testResolveFile() throws Exception {
+        System.out.println(vfs.resolveFile("oss://yt-temp/test-fs/").resolveFile("copy/"));
+        System.out.println(vfs.resolveFile("oss://yt-temp/test-fs/").resolveFile("pom.xml"));
+        System.out.println(vfs.resolveFile("oss://yt-temp/test-fs/").resolveFile("sync/src/main/"));
+        System.out.println(vfs.resolveFile("oss://yt-temp/test-fs/").resolveFile("sync/src/main/java/cc/whohow/aliyun/oss/AliyunOSS.java"));
     }
 
     @Test
@@ -66,7 +165,8 @@ public class TestAliyunOSSFileSystem {
         System.out.println(file.getName().getParent());
         System.out.println(file.getName().getType());
         System.out.println(file.getPublicURIString());
-        System.out.println(file.getFileOperations().getOperation(ProcessImage.class));
+        vfs.resolveFile("oss://yt-temp/test-kit/a.jpg")
+                .copyFrom(ProcessImage.apply(file).setParameters("@compress.jpg").get(), Selectors.SELECT_ALL);
     }
 
     @Test
