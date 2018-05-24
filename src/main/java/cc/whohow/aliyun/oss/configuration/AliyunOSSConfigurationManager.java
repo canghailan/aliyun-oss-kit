@@ -23,13 +23,13 @@ public class AliyunOSSConfigurationManager implements FileBasedConfigurationMana
 
     @Override
     public AliyunOSSConfigurationSource get(String key) {
-        return configurationSources.computeIfAbsent(key, this::newConfigurationSource);
-    }
-
-    private AliyunOSSConfigurationSource newConfigurationSource(String key) {
         if (key.startsWith("/") || key.endsWith("/")) {
             throw new IllegalArgumentException();
         }
+        return configurationSources.computeIfAbsent(key, this::newConfigurationSource);
+    }
+
+    protected AliyunOSSConfigurationSource newConfigurationSource(String key) {
         return new AliyunOSSConfigurationSource(
                 new AliyunOSSObject(conf.getOSS(), conf.getBucketName(), conf.getKey() + key));
     }
