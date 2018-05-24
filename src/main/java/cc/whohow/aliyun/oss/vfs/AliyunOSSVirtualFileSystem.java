@@ -515,4 +515,8 @@ public class AliyunOSSVirtualFileSystem extends AbstractVfsComponent implements 
     public FileName parseUri(FileName root, String uri) throws FileSystemException {
         throw new FileSystemException("");
     }
+
+    public Map<String, FileObject> getJunctions() {
+        return Collections.unmodifiableMap(junctions);
+    }
 }

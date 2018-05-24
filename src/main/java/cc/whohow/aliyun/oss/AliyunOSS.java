@@ -49,6 +49,10 @@ public class AliyunOSS {
         return Collections.unmodifiableCollection(CONFIGURATIONS.values());
     }
 
+    public static Map<String, String> getCnames() {
+        return Collections.unmodifiableMap(CNAME);
+    }
+
     /**
      * 新增配置
      */
