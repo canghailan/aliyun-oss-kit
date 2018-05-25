@@ -2,6 +2,7 @@ package cc.whohow.aliyun.oss.vfs;
 
 import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.AliyunOSSUri;
+import cc.whohow.aliyun.oss.vfs.operations.CompareFileContent;
 import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
 import org.apache.commons.vfs2.*;
 import org.junit.AfterClass;
@@ -167,6 +168,15 @@ public class TestAliyunOSSFileSystem {
         System.out.println(file.getPublicURIString());
         vfs.resolveFile("oss://yt-temp/test-kit/a.jpg")
                 .copyFrom(ProcessImage.apply(file).setParameters("@compress.jpg").get(), Selectors.SELECT_ALL);
+    }
+
+    @Test
+    public void testCompareFileContent() throws Exception {
+        FileObject fileObject1 = vfs.resolveFile("oss://yt-temp/test-kit/pom.xml");
+        FileObject fileObject2 = vfs.resolveFile("oss://yt-temp/test-kit/a.jpg");
+        FileObject fileObject3 = vfs.resolveFile("oss://yt-temp/test-fs/pom.xml");
+        Assert.assertTrue(CompareFileContent.apply(fileObject1).setFileObjectForCompare(fileObject3).isIdentical());
+        Assert.assertTrue(CompareFileContent.apply(fileObject1).setFileObjectForCompare(fileObject2).isDifferent());
     }
 
     @Test

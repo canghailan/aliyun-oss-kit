@@ -1,5 +1,6 @@
 package cc.whohow.aliyun.oss.vfs;
 
+import cc.whohow.aliyun.oss.vfs.operations.CompareFileContent;
 import cc.whohow.aliyun.oss.vfs.operations.GetSignedUrl;
 import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
 import org.apache.commons.vfs2.FileSystemException;
@@ -16,6 +17,7 @@ public class AliyunOSSFileOperations implements FileOperations {
     static {
         FACTORY.put(ProcessImage.class, AliyunOSSProcessImage::new);
         FACTORY.put(GetSignedUrl.class, AliyunOSSGetSignedUrl::new);
+        FACTORY.put(CompareFileContent.class, AliyunOSSCompareFileContent::new);
     }
 
     private final AliyunOSSFileObject fileObject;
