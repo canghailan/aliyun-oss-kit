@@ -1,6 +1,5 @@
 package cc.whohow.aliyun.oss.vfs;
 
-import cc.whohow.aliyun.oss.vfs.UriFileObject;
 import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
 import org.apache.commons.vfs2.FileObject;
 

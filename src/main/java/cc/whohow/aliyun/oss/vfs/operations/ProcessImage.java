@@ -8,6 +8,14 @@ import java.lang.reflect.UndeclaredThrowableException;
 import java.util.function.Supplier;
 
 public interface ProcessImage extends FileOperation, Supplier<FileObject> {
+    static ProcessImage apply(FileObject fileObject) {
+        try {
+            return (ProcessImage) fileObject.getFileOperations().getOperation(ProcessImage.class);
+        } catch (FileSystemException e) {
+            throw new UndeclaredThrowableException(e);
+        }
+    }
+
     ProcessImage setParameters(String parameters);
 
     FileObject getOriginFileObject();
@@ -19,14 +27,6 @@ public interface ProcessImage extends FileOperation, Supplier<FileObject> {
         try {
             process();
             return getProcessedFileObject();
-        } catch (FileSystemException e) {
-            throw new UndeclaredThrowableException(e);
-        }
-    }
-
-    static ProcessImage apply(FileObject fileObject) {
-        try {
-            return (ProcessImage) fileObject.getFileOperations().getOperation(ProcessImage.class);
         } catch (FileSystemException e) {
             throw new UndeclaredThrowableException(e);
         }

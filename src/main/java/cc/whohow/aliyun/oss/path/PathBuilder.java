@@ -39,6 +39,19 @@ public class PathBuilder implements Iterable<CharSequence> {
         }
     }
 
+    public static boolean contentEquals(CharSequence a, CharSequence b) {
+        if (a.length() != b.length()) {
+            return false;
+        }
+        int length = a.length();
+        for (int i = 0; i < length; i++) {
+            if (a.charAt(i) != b.charAt(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public char separatorChar() {
         return separatorChar;
     }
@@ -331,18 +344,5 @@ public class PathBuilder implements Iterable<CharSequence> {
         pathBuilder.endsWithSeparator = endsWithSeparator;
         pathBuilder.names = new LinkedList<>(names);
         return pathBuilder;
-    }
-
-    public static boolean contentEquals(CharSequence a, CharSequence b) {
-        if (a.length() != b.length()) {
-            return false;
-        }
-        int length = a.length();
-        for (int i = 0; i < length; i++) {
-            if (a.charAt(i) != b.charAt(i)) {
-                return false;
-            }
-        }
-        return true;
     }
 }

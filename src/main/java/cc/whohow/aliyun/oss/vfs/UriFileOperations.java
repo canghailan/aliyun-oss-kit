@@ -1,5 +1,6 @@
 package cc.whohow.aliyun.oss.vfs;
 
+import cc.whohow.aliyun.oss.vfs.operations.GetSignedUrl;
 import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.operations.FileOperation;
@@ -14,6 +15,7 @@ public class UriFileOperations implements FileOperations {
 
     static {
         FACTORY.put(ProcessImage.class, UriProcessImage::new);
+        FACTORY.put(GetSignedUrl.class, UriGetSignedUrl::new);
     }
 
     private final UriFileObject fileObject;

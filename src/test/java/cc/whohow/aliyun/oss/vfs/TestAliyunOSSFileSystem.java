@@ -107,7 +107,7 @@ public class TestAliyunOSSFileSystem {
             System.out.println(file);
         }
         System.out.println("FileDepthSelector(0, 2)");
-        for (FileObject file :  vfs.resolveFile("oss://yt-temp/test-kit/").findFiles(new FileDepthSelector(0, 2))) {
+        for (FileObject file : vfs.resolveFile("oss://yt-temp/test-kit/").findFiles(new FileDepthSelector(0, 2))) {
             System.out.println(file);
         }
     }
@@ -264,15 +264,21 @@ public class TestAliyunOSSFileSystem {
     }
 
     @Test
+    public void testGetUriFileAttributes() throws Exception {
+        FileObject file = vfs.resolveFile("https://picsum.photos/200/300/?random");
+        System.out.println(file.getContent().getAttributes());
+    }
+
+    @Test
     public void testJunctions() throws Exception {
         NavigableMap<String, String> junctions = new ConcurrentSkipListMap<>(Comparator.reverseOrder());
-        junctions.put("oss://a1/","oss://a1/");
-        junctions.put("oss://a1/b1/","oss://a1/b1/");
-        junctions.put("oss://a1/b1/c1/","oss://a1/b1/c1/");
-        junctions.put("oss://a1/b2/","oss://a1/b2/");
-        junctions.put("oss://a1/b2/c2/","oss://a1/b2/c2/");
-        junctions.put("oss://a1/b2/c2/d2/","oss://a1/b2/c2/d2/");
-        junctions.put("oss://a1/b","oss://a1/b");
+        junctions.put("oss://a1/", "oss://a1/");
+        junctions.put("oss://a1/b1/", "oss://a1/b1/");
+        junctions.put("oss://a1/b1/c1/", "oss://a1/b1/c1/");
+        junctions.put("oss://a1/b2/", "oss://a1/b2/");
+        junctions.put("oss://a1/b2/c2/", "oss://a1/b2/c2/");
+        junctions.put("oss://a1/b2/c2/d2/", "oss://a1/b2/c2/d2/");
+        junctions.put("oss://a1/b", "oss://a1/b");
 
         junctions.keySet().forEach(System.out::println);
 

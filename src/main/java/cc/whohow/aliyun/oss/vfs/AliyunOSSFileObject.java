@@ -278,7 +278,7 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
      */
     public FileObject[] findFiles(FileSelector selector) {
         if (selector == Selectors.SELECT_SELF) {
-            return new FileObject[] {this};
+            return new FileObject[]{this};
         }
         if (isFile()) {
             if (selector == Selectors.SELECT_ALL ||
@@ -355,7 +355,7 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
             throw new FileSystemException("vfs.provider/list-children-not-folder.error", this);
         }
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(
-                new AliyunOSSFileObjectIterator(this, false),0),false)
+                new AliyunOSSFileObjectIterator(this, false), 0), false)
                 .toArray(FileObject[]::new);
     }
 

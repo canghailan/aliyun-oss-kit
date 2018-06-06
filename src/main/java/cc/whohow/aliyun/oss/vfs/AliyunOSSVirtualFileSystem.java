@@ -3,7 +3,8 @@ package cc.whohow.aliyun.oss.vfs;
 import org.apache.commons.vfs2.*;
 import org.apache.commons.vfs2.operations.FileOperationProvider;
 import org.apache.commons.vfs2.operations.FileOperations;
-import org.apache.commons.vfs2.provider.*;
+import org.apache.commons.vfs2.provider.AbstractVfsComponent;
+import org.apache.commons.vfs2.provider.FileProvider;
 
 import java.io.File;
 import java.lang.reflect.Constructor;

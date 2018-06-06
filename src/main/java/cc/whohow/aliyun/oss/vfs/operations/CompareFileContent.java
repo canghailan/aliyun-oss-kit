@@ -7,6 +7,14 @@ import org.apache.commons.vfs2.operations.FileOperation;
 import java.lang.reflect.UndeclaredThrowableException;
 
 public interface CompareFileContent extends FileOperation {
+    static CompareFileContent apply(FileObject fileObject) {
+        try {
+            return (CompareFileContent) fileObject.getFileOperations().getOperation(CompareFileContent.class);
+        } catch (FileSystemException e) {
+            throw new UndeclaredThrowableException(e);
+        }
+    }
+
     CompareFileContent setFileObjectForCompare(FileObject fileObject);
 
     /**
@@ -18,12 +26,4 @@ public interface CompareFileContent extends FileOperation {
      * 返回true一定不同，返回false不一定不同（可能不同）
      */
     boolean isDifferent();
-
-    static CompareFileContent apply(FileObject fileObject) {
-        try {
-            return (CompareFileContent) fileObject.getFileOperations().getOperation(CompareFileContent.class);
-        } catch (FileSystemException e) {
-            throw new UndeclaredThrowableException(e);
-        }
-    }
 }

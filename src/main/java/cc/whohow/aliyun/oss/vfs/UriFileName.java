@@ -82,7 +82,7 @@ public class UriFileName implements FileName {
         if (name instanceof UriFileName) {
             UriFileName that = (UriFileName) name;
             if (Objects.equals(that.uri.getScheme(), this.uri.getScheme()) &&
-                    Objects.equals(that.uri.getHost(), this.uri.getHost())&&
+                    Objects.equals(that.uri.getHost(), this.uri.getHost()) &&
                     Objects.equals(that.uri.getPort(), this.uri.getPort())) {
                 return new PathBuilder(this.uri.getPath()).relativize(that.uri.getPath()).toString();
             }
@@ -95,7 +95,7 @@ public class UriFileName implements FileName {
         if (ancestor instanceof UriFileName) {
             UriFileName that = (UriFileName) ancestor;
             if (Objects.equals(that.uri.getScheme(), this.uri.getScheme()) &&
-                    Objects.equals(that.uri.getHost(), this.uri.getHost())&&
+                    Objects.equals(that.uri.getHost(), this.uri.getHost()) &&
                     Objects.equals(that.uri.getPort(), this.uri.getPort())) {
                 return uri.getPath().startsWith(that.uri.getPath());
             }
@@ -108,7 +108,7 @@ public class UriFileName implements FileName {
         if (descendant instanceof UriFileName) {
             UriFileName that = (UriFileName) descendant;
             if (Objects.equals(that.uri.getScheme(), this.uri.getScheme()) &&
-                    Objects.equals(that.uri.getHost(), this.uri.getHost())&&
+                    Objects.equals(that.uri.getHost(), this.uri.getHost()) &&
                     Objects.equals(that.uri.getPort(), this.uri.getPort())) {
                 return descendant.getPath().startsWith(that.uri.getPath());
             }
@@ -132,7 +132,7 @@ public class UriFileName implements FileName {
                 uri.getPath().isEmpty() ||
                 uri.getPath().equals("/")) {
             return FileType.FOLDER;
-        } else{
+        } else {
             return FileType.FILE;
         }
     }

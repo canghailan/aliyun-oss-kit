@@ -1,14 +1,18 @@
 package cc.whohow.aliyun.oss;
 
 import cc.whohow.aliyun.oss.file.FileTree;
+import cc.whohow.aliyun.oss.net.ApacheHttpClient;
 import cc.whohow.aliyun.oss.tree.TreePreOrderIterator;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.*;
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 
 import java.io.*;
 import java.net.URI;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -133,16 +137,22 @@ public class AliyunOSSObject {
      */
     public String putObject(URL url) {
         try {
-            URLConnection connection = url.openConnection();
+            HttpClient httpClient = ApacheHttpClient.get();
+            HttpResponse response = httpClient.execute(new HttpGet(url.toString()));
+            Header contentType = response.getFirstHeader("Content-Type");
+            Header contentLength = response.getFirstHeader("Content-Length");
+
             ObjectMetadata objectMetadata = new ObjectMetadata();
-            if (connection.getContentType() != null) {
-                objectMetadata.setContentType(connection.getContentType());
+            if (contentType != null) {
+                objectMetadata.setContentType(contentType.getValue());
             }
-            if (connection.getContentLengthLong() > 0) {
-                objectMetadata.setContentLength(connection.getContentLengthLong());
+            if (contentLength != null &&
+                    contentLength.getValue() != null &&
+                    !contentLength.getValue().isEmpty()) {
+                objectMetadata.setContentLength(Long.parseLong(contentLength.getValue()));
             }
 
-            try (InputStream stream = connection.getInputStream()) {
+            try (InputStream stream = response.getEntity().getContent()) {
                 return putObject(stream, objectMetadata);
             }
         } catch (IOException e) {

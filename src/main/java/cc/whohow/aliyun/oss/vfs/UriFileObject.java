@@ -146,12 +146,12 @@ public class UriFileObject implements FileObject {
     }
 
     @Override
-    public boolean isExecutable()  {
+    public boolean isExecutable() {
         return false;
     }
 
     @Override
-    public boolean isFile()  {
+    public boolean isFile() {
         return true;
     }
 
@@ -161,7 +161,7 @@ public class UriFileObject implements FileObject {
     }
 
     @Override
-    public boolean isHidden()  {
+    public boolean isHidden() {
         return false;
     }
 
@@ -181,7 +181,7 @@ public class UriFileObject implements FileObject {
     }
 
     @Override
-    public void refresh()  {
+    public void refresh() {
         // do nothing
     }
 
