@@ -1,16 +1,15 @@
 package cc.whohow.aliyun.oss.net;
 
-import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.LaxRedirectStrategy;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 
 import java.io.IOException;
 
 public class ApacheHttpClient {
     private static volatile CloseableHttpClient httpClient = HttpClientBuilder.create()
-            .setConnectionManager(new PoolingHttpClientConnectionManager())
+            .setMaxConnPerRoute(512)
+            .setMaxConnTotal(1024)
             .setRedirectStrategy(LaxRedirectStrategy.INSTANCE)
             .build();
 
@@ -18,7 +17,7 @@ public class ApacheHttpClient {
         Runtime.getRuntime().addShutdownHook(new Thread(ApacheHttpClient::shutdown));
     }
 
-    public static HttpClient get() {
+    public static CloseableHttpClient get() {
         return httpClient;
     }
 

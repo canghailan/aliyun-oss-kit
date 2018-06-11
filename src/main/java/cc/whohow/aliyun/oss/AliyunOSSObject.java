@@ -6,8 +6,7 @@ import cc.whohow.aliyun.oss.tree.TreePreOrderIterator;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.*;
 import org.apache.http.Header;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 
 import java.io.*;
@@ -136,9 +135,7 @@ public class AliyunOSSObject {
      * 上传链接
      */
     public String putObject(URL url) {
-        try {
-            HttpClient httpClient = ApacheHttpClient.get();
-            HttpResponse response = httpClient.execute(new HttpGet(url.toString()));
+        try (CloseableHttpResponse response = ApacheHttpClient.get().execute(new HttpGet(url.toString()))) {
             Header contentType = response.getFirstHeader("Content-Type");
             Header contentLength = response.getFirstHeader("Content-Length");
 

@@ -1,13 +1,13 @@
 package cc.whohow.aliyun.oss.vfs;
 
 import cc.whohow.aliyun.oss.io.Java9InputStream;
+import cc.whohow.aliyun.oss.io.ResourceInputStream;
 import cc.whohow.aliyun.oss.net.ApacheHttpClient;
 import org.apache.commons.vfs2.*;
 import org.apache.commons.vfs2.impl.DefaultFileContentInfo;
 import org.apache.commons.vfs2.util.RandomAccessMode;
 import org.apache.http.Header;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.DateUtils;
 
@@ -55,10 +55,7 @@ public class UriFileContent implements FileContent {
 
     @Override
     public Map<String, Object> getAttributes() throws FileSystemException {
-        try {
-            HttpClient httpClient = ApacheHttpClient.get();
-            HttpResponse response = httpClient.execute(new HttpGet(file.getURL().toString()));
-
+        try (CloseableHttpResponse response = ApacheHttpClient.get().execute(new HttpGet(file.getURL().toString()))) {
             Map<String, Object> attributes = new LinkedHashMap<>();
             for (Header header : response.getAllHeaders()) {
                 attributes.put(header.getName().toLowerCase(), header.getValue());
@@ -97,9 +94,8 @@ public class UriFileContent implements FileContent {
     @Override
     public InputStream getInputStream() throws FileSystemException {
         try {
-            HttpClient httpClient = ApacheHttpClient.get();
-            HttpResponse response = httpClient.execute(new HttpGet(file.getURL().toString()));
-            return response.getEntity().getContent();
+            CloseableHttpResponse response = ApacheHttpClient.get().execute(new HttpGet(file.getURL().toString()));
+            return new ResourceInputStream(response, response.getEntity().getContent());
         } catch (IOException e) {
             throw new FileSystemException(e);
         }

@@ -6,7 +6,7 @@
 
     <groupId>cc.whohow</groupId>
     <artifactId>aliyun-oss-kit</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.7</version>
 
     <build>
         <plugins>
