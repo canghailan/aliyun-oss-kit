@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class Java9InputStream extends InputStream {
     protected final InputStream delegate;
@@ -70,20 +71,20 @@ public class Java9InputStream extends InputStream {
     }
 
     public ByteBuffer readAllBytes(int bufferSize) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+        byte[] buffer = new byte[bufferSize];
+        int offset = 0;
+        int length = buffer.length;
         while (true) {
-            int n = read(buffer.array(), buffer.position(), buffer.remaining());
+            int n = read(buffer, offset, length);
             if (n < 0) {
-                buffer.flip();
-                return buffer;
-            } else if (n > 0) {
-                buffer.position(buffer.position() + n);
-            }
-            if (!buffer.hasRemaining()) {
-                buffer.flip();
-                ByteBuffer byteBuffer = ByteBuffer.allocate(buffer.capacity() * 2);
-                byteBuffer.put(buffer);
-                buffer = byteBuffer;
+                return ByteBuffer.wrap(buffer, 0, offset);
+            } else {
+                offset += n;
+                length -= n;
+                if (length == 0) {
+                    buffer = Arrays.copyOf(buffer, buffer.length * 2);
+                    length = buffer.length - offset;
+                }
             }
         }
     }
