@@ -78,7 +78,7 @@ public class Java9InputStream extends InputStream {
             int n = read(buffer, offset, length);
             if (n < 0) {
                 return ByteBuffer.wrap(buffer, 0, offset);
-            } else {
+            } else if (n > 0) {
                 offset += n;
                 length -= n;
                 if (length == 0) {
