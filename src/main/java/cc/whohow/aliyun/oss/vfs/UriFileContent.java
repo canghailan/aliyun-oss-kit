@@ -158,7 +158,7 @@ public class UriFileContent implements FileContent {
     @Override
     public long write(OutputStream output, int bufferSize) throws IOException {
         try (Java9InputStream input = new Java9InputStream(getInputStream())) {
-            return input.transferTo(output, new byte[bufferSize]);
+            return input.transferTo(output, bufferSize);
         }
     }
 }

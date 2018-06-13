@@ -3,26 +3,13 @@ package cc.whohow.aliyun.oss.io;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
 
 public class Java9InputStream extends InputStream {
     protected final InputStream delegate;
 
     public Java9InputStream(InputStream delegate) {
         this.delegate = delegate;
-    }
-
-    public static long transfer(InputStream input, OutputStream output, byte[] buffer) throws IOException {
-        long transferred = 0L;
-        while (true) {
-            int n = input.read(buffer);
-            if (n < 0) {
-                return transferred;
-            } else if (n > 0) {
-                output.write(buffer, 0, n);
-                transferred += n;
-            }
-        }
     }
 
     @Override
@@ -71,27 +58,32 @@ public class Java9InputStream extends InputStream {
     }
 
     public byte[] readAllBytes() throws IOException {
-        return readAllBytes(new byte[8 * 1024]);
+        ByteBuffer buffer = readAllBytes(8 * 1024);
+        if (buffer.hasArray()) {
+            if (buffer.arrayOffset() == 0 && buffer.remaining() == buffer.capacity()) {
+                return buffer.array();
+            }
+        }
+        byte[] bytes = new byte[buffer.remaining()];
+        buffer.get(bytes);
+        return bytes;
     }
 
-    public byte[] readAllBytes(byte[] buffer) throws IOException {
-        int offset = 0;
-        int length = buffer.length;
+    public ByteBuffer readAllBytes(int bufferSize) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
         while (true) {
-            int n = read(buffer, offset, length);
+            int n = read(buffer.array(), buffer.arrayOffset(), buffer.remaining());
             if (n < 0) {
-                if (buffer.length == offset) {
-                    return buffer;
-                } else {
-                    return Arrays.copyOf(buffer, offset);
-                }
-            } else {
-                offset += n;
-                length -= n;
-                if (length == 0) {
-                    buffer = Arrays.copyOf(buffer, buffer.length * 2);
-                    length = buffer.length - offset;
-                }
+                buffer.flip();
+                return buffer;
+            } else if (n > 0) {
+                buffer.position(buffer.position() + n);
+            }
+            if (!buffer.hasRemaining()) {
+                buffer.flip();
+                ByteBuffer byteBuffer = ByteBuffer.allocate(buffer.capacity() * 2);
+                byteBuffer.put(buffer);
+                buffer = byteBuffer;
             }
         }
     }
@@ -102,8 +94,7 @@ public class Java9InputStream extends InputStream {
             int n = read(buffer, offset, length);
             if (n < 0) {
                 return bytes;
-            }
-            if (n > 0) {
+            } else if (n > 0) {
                 bytes += n;
                 offset += n;
                 length -= n;
@@ -112,11 +103,27 @@ public class Java9InputStream extends InputStream {
         return bytes;
     }
 
-    public long transferTo(OutputStream out) throws IOException {
-        return transferTo(out, new byte[8 * 1024]);
+    public ByteBuffer readNBytes(int length) throws IOException {
+        byte[] buffer = new byte[length];
+        int n = readNBytes(buffer, 0, length);
+        return ByteBuffer.wrap(buffer, 0, n);
     }
 
-    public long transferTo(OutputStream out, byte[] buffer) throws IOException {
-        return transfer(this, out, buffer);
+    public long transferTo(OutputStream out) throws IOException {
+        return transferTo(out, 8 * 1024);
+    }
+
+    public long transferTo(OutputStream out, int bufferSize) throws IOException {
+        byte[] buffer = new byte[bufferSize];
+        long transferred = 0L;
+        while (true) {
+            int n = read(buffer);
+            if (n < 0) {
+                return transferred;
+            } else if (n > 0) {
+                out.write(buffer, 0, n);
+                transferred += n;
+            }
+        }
     }
 }
