@@ -3,6 +3,7 @@ package cc.whohow.aliyun.oss.vfs;
 import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.AliyunOSSUri;
 import cc.whohow.aliyun.oss.vfs.operations.CompareFileContent;
+import cc.whohow.aliyun.oss.vfs.operations.GetSignedUrl;
 import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
 import org.apache.commons.vfs2.*;
 import org.junit.AfterClass;
@@ -12,7 +13,9 @@ import org.junit.Test;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.NavigableMap;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -267,6 +270,14 @@ public class TestAliyunOSSFileSystem {
     public void testGetUriFileAttributes() throws Exception {
         FileObject file = vfs.resolveFile("https://picsum.photos/200/300/?random");
         System.out.println(file.getContent().getAttributes());
+    }
+
+    @Test
+    public void testGeneratePresignedUrl() throws Exception {
+        String signedUrl = GetSignedUrl.apply(vfs.resolveFile("oss://yt-temp/test-kit/copy/random.jpg"))
+                .setExpiresIn(Duration.ofSeconds(3L * 60L * 60L * 1000L))
+                .get();
+        System.out.println(signedUrl);
     }
 
     @Test
