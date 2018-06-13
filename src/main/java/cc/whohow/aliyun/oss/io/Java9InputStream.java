@@ -72,7 +72,7 @@ public class Java9InputStream extends InputStream {
     public ByteBuffer readAllBytes(int bufferSize) throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
         while (true) {
-            int n = read(buffer.array(), buffer.arrayOffset(), buffer.remaining());
+            int n = read(buffer.array(), buffer.position(), buffer.remaining());
             if (n < 0) {
                 buffer.flip();
                 return buffer;
