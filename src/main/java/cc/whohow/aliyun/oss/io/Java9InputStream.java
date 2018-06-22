@@ -4,10 +4,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
 import java.util.Arrays;
 
-public class Java9InputStream extends InputStream {
+/**
+ * InputStream工具
+ */
+public class Java9InputStream extends InputStream implements ReadableByteChannel {
     protected final InputStream delegate;
+    protected boolean open;
 
     public Java9InputStream(InputStream delegate) {
         this.delegate = delegate;
@@ -39,8 +44,17 @@ public class Java9InputStream extends InputStream {
     }
 
     @Override
+    public boolean isOpen() {
+        return open;
+    }
+
+    @Override
     public void close() throws IOException {
-        delegate.close();
+        try {
+            delegate.close();
+        } finally {
+            open = false;
+        }
     }
 
     @Override
@@ -75,7 +89,7 @@ public class Java9InputStream extends InputStream {
         int offset = 0;
         int length = buffer.length;
         while (true) {
-            int n = read(buffer, offset, length);
+            int n = delegate.read(buffer, offset, length);
             if (n < 0) {
                 return ByteBuffer.wrap(buffer, 0, offset);
             } else if (n > 0) {
@@ -92,7 +106,7 @@ public class Java9InputStream extends InputStream {
     public int readNBytes(byte[] buffer, int offset, int length) throws IOException {
         int bytes = 0;
         while (length > 0) {
-            int n = read(buffer, offset, length);
+            int n = delegate.read(buffer, offset, length);
             if (n < 0) {
                 return bytes;
             } else if (n > 0) {
@@ -118,13 +132,31 @@ public class Java9InputStream extends InputStream {
         byte[] buffer = new byte[bufferSize];
         long transferred = 0L;
         while (true) {
-            int n = read(buffer);
+            int n = delegate.read(buffer);
             if (n < 0) {
                 return transferred;
             } else if (n > 0) {
                 out.write(buffer, 0, n);
                 transferred += n;
             }
+        }
+    }
+
+    @Override
+    public int read(ByteBuffer dst) throws IOException {
+        if (dst.hasArray()) {
+            int n = delegate.read(dst.array(), dst.arrayOffset() + dst.position(), dst.remaining());
+            dst.position(dst.position() + n);
+            return n;
+        } else {
+            int length = dst.remaining();
+            if (length > 8 * 1024) {
+                length = 8 * 1024;
+            }
+            byte[] buffer = new byte[length];
+            int n = delegate.read(buffer);
+            dst.put(buffer, 0, n);
+            return n;
         }
     }
 }
