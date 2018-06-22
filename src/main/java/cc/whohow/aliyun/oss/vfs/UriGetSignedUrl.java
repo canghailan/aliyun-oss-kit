@@ -14,7 +14,7 @@ public class UriGetSignedUrl implements GetSignedUrl {
 
     @Override
     public GetSignedUrl setExpiration(Date expiration) {
-        return null;
+        return this;
     }
 
     @Override
