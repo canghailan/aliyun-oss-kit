@@ -21,6 +21,6 @@ public interface GetSignedUrl extends FileOperation, Supplier<String> {
     GetSignedUrl setExpiration(Date expiration);
 
     default GetSignedUrl setExpiresIn(Duration expiresIn) {
-        return setExpiration(new Date(System.currentTimeMillis() * expiresIn.toMillis()));
+        return setExpiration(new Date(System.currentTimeMillis() + expiresIn.toMillis()));
     }
 }

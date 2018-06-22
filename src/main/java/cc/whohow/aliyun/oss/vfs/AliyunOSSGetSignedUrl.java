@@ -22,15 +22,20 @@ public class AliyunOSSGetSignedUrl implements GetSignedUrl {
 
     @Override
     public String get() {
-        String url = AliyunOSS.getUrl(fileObject.getName());
+        String cnameUrl = AliyunOSS.getCnameUrl(fileObject.getName(), expiration);
+        if (cnameUrl != null) {
+            return cnameUrl;
+        }
+
+        String extranetUrl = AliyunOSS.getExtranetUrl(fileObject.getName());
         String presignedUrl = fileObject.getOSS()
                 .generatePresignedUrl(fileObject.getBucketName(), fileObject.getKey(), expiration)
                 .toString();
         int index = presignedUrl.indexOf('?');
         if (index < 0) {
-            return url;
+            return extranetUrl;
         }
-        return url + presignedUrl.substring(index);
+        return extranetUrl + presignedUrl.substring(index);
     }
 
     @Override

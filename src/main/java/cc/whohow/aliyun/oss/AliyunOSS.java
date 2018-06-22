@@ -5,7 +5,9 @@ import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.Bucket;
 import com.aliyun.oss.model.BucketInfo;
+import org.apache.commons.codec.digest.DigestUtils;
 
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -36,7 +38,7 @@ public class AliyunOSS {
     /**
      * 标准 Object URI <-> URL
      */
-    private static final NavigableMap<String, String> CNAME = new ConcurrentSkipListMap<>(Comparator.reverseOrder());
+    private static final NavigableMap<String, URI> CNAME = new ConcurrentSkipListMap<>(Comparator.reverseOrder());
     /**
      * 线程池
      */
@@ -49,7 +51,7 @@ public class AliyunOSS {
         return Collections.unmodifiableCollection(CONFIGURATIONS.values());
     }
 
-    public static Map<String, String> getCnames() {
+    public static Map<String, URI> getCnames() {
         return Collections.unmodifiableMap(CNAME);
     }
 
@@ -313,10 +315,45 @@ public class AliyunOSS {
     }
 
     public static String getCnameUrl(AliyunOSSUri uri) {
+        return getCnameUrl(uri, null);
+    }
+
+    public static String getCnameUrl(AliyunOSSUri uri, Date expires) {
         String key = "oss://" + uri.getBucketName() + "/" + uri.getKey();
-        for (Map.Entry<String, String> e : CNAME.tailMap(key).entrySet()) {
+        for (Map.Entry<String, URI> e : CNAME.tailMap(key).entrySet()) {
             if (key.startsWith(e.getKey())) {
-                return e.getValue() + key.substring(e.getKey().length());
+                URI cname = e.getValue();
+
+                StringBuilder buffer = new StringBuilder(e.getKey().length() + uri.getKey().length());
+                buffer.append(cname.getScheme()).append("://");
+                buffer.append(cname.getHost());
+                int mark = buffer.length();
+                if (cname.getPath() == null || cname.getPath().isEmpty()) {
+                    buffer.append("/");
+                } else {
+                    buffer.append(cname.getPath());
+                }
+                buffer.append(key, e.getKey().length(), key.length());
+                if (expires == null || cname.getUserInfo() == null) {
+                    return buffer.toString();
+                }
+
+                long timestamp = expires.getTime() / 1000L;
+                String rand = UUID.randomUUID().toString().replace("-", "");
+                int uid = 0;
+                StringBuilder toSign = new StringBuilder(buffer.length() - mark + 100);
+                toSign.append(buffer, mark, buffer.length()).append('-'); // URI-
+                toSign.append(timestamp).append('-'); // Timestamp-
+                toSign.append(rand).append('-'); // rand-
+                toSign.append(uid).append('-'); // uid-
+                toSign.append(cname.getUserInfo()); // PrivateKey
+                String sign = DigestUtils.md5Hex(toSign.toString());
+
+                return buffer.append("?auth_key=")
+                        .append(timestamp).append('-')
+                        .append(rand).append('-')
+                        .append(uid).append('-')
+                        .append(sign).toString();
             }
         }
         return null;
@@ -333,10 +370,17 @@ public class AliyunOSS {
     /**
      * 配置Cname
      */
-    public static void configureCname(AliyunOSSUri uri, String url) {
+    public static void configureCname(AliyunOSSUri uri, String cname) {
+        configureCname(uri, URI.create(cname));
+    }
+
+    /**
+     * 配置Cname
+     */
+    public static void configureCname(AliyunOSSUri uri, URI cname) {
         Objects.requireNonNull(uri.getBucketName());
-        Objects.requireNonNull(url);
-        CNAME.put("oss://" + uri.getBucketName() + "/" + uri.getKey(), url);
+        Objects.requireNonNull(cname);
+        CNAME.put("oss://" + uri.getBucketName() + "/" + uri.getKey(), cname);
     }
 
     public static ScheduledExecutorService getExecutor() {
