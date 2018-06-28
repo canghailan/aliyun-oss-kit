@@ -2,6 +2,7 @@ package cc.whohow.aliyun.oss.vfs;
 
 import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.AliyunOSSUri;
+import cc.whohow.aliyun.oss.FileObjects;
 import cc.whohow.aliyun.oss.vfs.operations.CompareFileContent;
 import cc.whohow.aliyun.oss.vfs.operations.GetSignedUrl;
 import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
@@ -170,7 +171,7 @@ public class TestAliyunOSSFileSystem {
         System.out.println(file.getName().getType());
         System.out.println(file.getPublicURIString());
         vfs.resolveFile("oss://yt-temp/test-kit/a.jpg")
-                .copyFrom(ProcessImage.apply(file).setParameters("@compress.jpg").get(), Selectors.SELECT_ALL);
+                .copyFrom(FileObjects.newOperation(file, ProcessImage.class).setParameters("@compress.jpg").get(), Selectors.SELECT_ALL);
     }
 
     @Test
@@ -178,8 +179,8 @@ public class TestAliyunOSSFileSystem {
         FileObject fileObject1 = vfs.resolveFile("oss://yt-temp/test-kit/pom.xml");
         FileObject fileObject2 = vfs.resolveFile("oss://yt-temp/test-kit/a.jpg");
         FileObject fileObject3 = vfs.resolveFile("oss://yt-temp/test-fs/pom.xml");
-        Assert.assertTrue(CompareFileContent.apply(fileObject1).setFileObjectForCompare(fileObject3).isIdentical());
-        Assert.assertTrue(CompareFileContent.apply(fileObject1).setFileObjectForCompare(fileObject2).isDifferent());
+        Assert.assertTrue(FileObjects.newOperation(fileObject1, CompareFileContent.class).setFileObjectForCompare(fileObject3).isIdentical());
+        Assert.assertTrue(FileObjects.newOperation(fileObject1, CompareFileContent.class).setFileObjectForCompare(fileObject2).isDifferent());
     }
 
     @Test
@@ -274,7 +275,7 @@ public class TestAliyunOSSFileSystem {
 
     @Test
     public void testGeneratePresignedUrl() throws Exception {
-        String signedUrl = GetSignedUrl.apply(vfs.resolveFile("oss://yt-temp/test-kit/copy/random.jpg"))
+        String signedUrl = FileObjects.newOperation(vfs.resolveFile("oss://yt-temp/test-kit/copy/random.jpg"), GetSignedUrl.class)
                 .setExpiresIn(Duration.ofSeconds(3L * 60L * 60L * 1000L))
                 .get();
         System.out.println(signedUrl);
