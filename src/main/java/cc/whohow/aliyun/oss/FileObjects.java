@@ -66,21 +66,26 @@ public class FileObjects {
      * 创建临时文件
      */
     public static FileObject createTempFile(FileObject dir, String prefix, String suffix)  {
-        StringBuilder name = new StringBuilder(64);
-        if (prefix != null && !prefix.isEmpty()) {
-            name.append(prefix).append('-');
-        }
-        name.append(UUID.randomUUID());
-        if (suffix != null && !suffix.isEmpty()) {
-            name.append(suffix);
-        }
         try {
-            FileObject temp = dir.getChild(name.toString());
+            FileObject temp = dir.getChild(newRandomPath(prefix, suffix));
             temp.createFile();
             return temp;
         } catch (FileSystemException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /**
+     * 生成随机路径
+     */
+    public static String newRandomPath(String prefix, String suffix) {
+        if (prefix == null) {
+            prefix = "";
+        }
+        if (suffix == null) {
+            suffix = "";
+        }
+        return prefix + UUID.randomUUID() + suffix;
     }
 
     /**
@@ -296,7 +301,7 @@ public class FileObjects {
     /**
      * 读取utf-8字符串
      */
-    public static String readUtf8(FileObject fileObject, Charset charset) {
+    public static String readUtf8(FileObject fileObject) {
         return read(fileObject, StandardCharsets.UTF_8);
     }
 
