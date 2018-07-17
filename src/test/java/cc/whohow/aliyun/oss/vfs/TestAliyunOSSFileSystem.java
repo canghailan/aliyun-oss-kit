@@ -297,4 +297,9 @@ public class TestAliyunOSSFileSystem {
         junctions.tailMap("oss://a1/b2/c")
                 .keySet().forEach(System.out::println);
     }
+
+    @Test
+    public void testSize() throws Exception {
+        System.out.println(FileObjects.size(vfs.resolveFile("oss://yt-temp/test-kit/copy/")));
+    }
 }

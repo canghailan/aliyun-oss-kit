@@ -13,8 +13,10 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Spliterators;
 import java.util.UUID;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * FileObjects 工具
@@ -194,9 +196,20 @@ public class FileObjects {
      * 获取文件大小
      */
     public static long size(FileObject fileObject) {
-        try (FileContent fileContent = fileObject.getContent()) {
-            return fileContent.getSize();
-        } catch (FileSystemException e) {
+        try {
+            if (fileObject.isFolder()) {
+                try (Stream<FileObject> stream = walk(fileObject)) {
+                    return stream
+                            .filter(FileObjects::isRegularFile)
+                            .mapToLong(FileObjects::size)
+                            .sum();
+                }
+            } else {
+                try (FileContent fileContent = fileObject.getContent()) {
+                    return fileContent.getSize();
+                }
+            }
+        } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
@@ -324,7 +337,7 @@ public class FileObjects {
      * 递归列出文件夹下所有文件
      */
     public static Stream<FileObject> walk(FileObject fileObject) throws IOException {
-        return Arrays.stream(fileObject.findFiles(Selectors.SELECT_ALL));
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(fileObject.iterator(), 0), false);
     }
 
     /**
