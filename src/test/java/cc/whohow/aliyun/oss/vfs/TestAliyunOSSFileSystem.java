@@ -3,6 +3,7 @@ package cc.whohow.aliyun.oss.vfs;
 import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.AliyunOSSUri;
 import cc.whohow.aliyun.oss.FileObjects;
+import cc.whohow.aliyun.oss.vfs.copy.FileObjectCopier;
 import cc.whohow.aliyun.oss.vfs.operations.CompareFileContent;
 import cc.whohow.aliyun.oss.vfs.operations.GetSignedUrl;
 import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
@@ -301,5 +302,16 @@ public class TestAliyunOSSFileSystem {
     @Test
     public void testSize() throws Exception {
         System.out.println(FileObjects.size(vfs.resolveFile("oss://yt-temp/test-kit/copy/")));
+    }
+
+    @Test
+    public void testFileObjectCopier() throws Exception {
+        FileObject file = new FileObjectCopier()
+                .setSource("oss://yt-temp/test-kit/copy/d6b067fc-8854-44b1-9694-8c9564ec836b.jpg")
+                .setTarget("oss://yt-temp/test-kit/copy/")
+                .withRandomTarget()
+                .withSourceOperation(ProcessImage.class, (s, op) -> op.setParameters("@!thumb.jpg").get())
+                .call();
+        System.out.println(file);
     }
 }

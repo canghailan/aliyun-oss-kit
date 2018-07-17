@@ -25,6 +25,17 @@ import java.util.stream.StreamSupport;
  */
 public class FileObjects {
     /**
+     * 获取文件对象
+     */
+    public static FileObject resolve(String uri) {
+        try {
+            return VFS.getManager().resolveFile(uri);
+        } catch (FileSystemException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
      * 获取输出流
      */
     public static InputStream newInputStream(FileObject fileObject) throws IOException {
