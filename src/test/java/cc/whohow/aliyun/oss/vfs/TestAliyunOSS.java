@@ -14,8 +14,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class TestAliyunOSS {
     private static String accessKeyId = "";
@@ -72,6 +77,31 @@ public class TestAliyunOSS {
     public void testPutObjectUrl() throws Exception {
         AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/url/random.jpg")
                 .putObject(new URL("https://picsum.photos/200/300/?random"));
+    }
+
+    @Test
+    public void testPutLargeObjectUrl() throws Exception {
+        List<Runnable> tasks = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            tasks.add(() -> {
+                long timestamp = System.currentTimeMillis();
+                System.out.println(Thread.currentThread().getId());
+                try {
+                    AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/url/random" + Thread.currentThread().getId() + ".mp4")
+                            .putObject(new URL("https://picsum.photos/200/300/?random"));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                System.out.println(Thread.currentThread().getId() + ": " + (System.currentTimeMillis() - timestamp));
+            });
+        }
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(16);
+        tasks.forEach(executor::submit);
+//        executor.scheduleWithFixedDelay(() -> {
+//            HttpClient httpClient = HttpURLConnection.httpClient;
+//        }, 1,1, TimeUnit.SECONDS);
+        executor.awaitTermination(1, TimeUnit.DAYS);
+        executor.shutdownNow();
     }
 
     @Test

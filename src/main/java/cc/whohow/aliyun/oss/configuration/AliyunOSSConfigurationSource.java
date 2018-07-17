@@ -22,5 +22,6 @@ public class AliyunOSSConfigurationSource extends AbstractFileBasedConfiguration
 
     @Override
     public void close() throws IOException {
+        removeListeners();
     }
 }

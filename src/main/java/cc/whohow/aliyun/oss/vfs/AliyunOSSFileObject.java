@@ -110,13 +110,7 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
             if (src.isFile()) {
                 // 如果将文件拷贝到目录，自动创建同名文件
                 AliyunOSSFileObject dst = isFile() ? this : getChild(srcFile.getName().getBaseName());
-                if (dst.isCopyable(src)) {
-                    // 阿里云OSS原生拷贝
-                    dst.copyFromObject(src);
-                } else {
-                    // 阿里云OSS模拟拷贝
-                    dst.putObject(src);
-                }
+                dst.copyFromFileObject(src);
             } else {
                 if (isFile()) {
                     // 不允许将目录拷贝到文件
@@ -129,11 +123,6 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
                     putObjectRecursively(src);
                 }
             }
-        } else if (srcFile instanceof UriFileObject) {
-            // 如果将文件拷贝到目录，自动创建同名文件
-            AliyunOSSFileObject dst = isFile() ? this : getChild(srcFile.getName().getBaseName());
-            // 直接拷贝链接
-            dst.putObject(srcFile.getURL());
         } else {
             if (srcFile.isFile()) {
                 // 如果将文件拷贝到目录，自动创建同名文件
@@ -159,19 +148,45 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
     }
 
     /**
+     * 拷贝阿里云文件
+     */
+    protected void copyFromFileObject(AliyunOSSFileObject srcFile) throws FileSystemException {
+        if (isCopyable(srcFile)) {
+            // 阿里云OSS原生拷贝
+            copyFromObject(srcFile);
+        } else {
+            // 阿里云OSS模拟拷贝
+            putObject(srcFile);
+        }
+    }
+
+    /**
+     * 拷贝链接
+     */
+    protected void copyFromFileObject(UriFileObject srcFile) throws FileSystemException {
+        putObject(srcFile.getURL());
+    }
+
+    /**
      * 拷贝一般文件
      */
-    public void copyFromFileObject(FileObject srcFile) throws FileSystemException {
-        try (FileContent fileContent = srcFile.getContent()) {
-            try (InputStream stream = fileContent.getInputStream()) {
-                ObjectMetadata objectMetadata = getFileContentInfoAsObjectMetadata(fileContent);
-                if (objectMetadata == null) {
-                    putObject(stream);
-                } else {
-                    putObject(stream, objectMetadata);
+    protected void copyFromFileObject(FileObject srcFile) throws FileSystemException {
+        if (srcFile instanceof AliyunOSSFileObject) {
+            copyFromFileObject((AliyunOSSFileObject) srcFile);
+        } else if (srcFile instanceof UriFileObject) {
+            copyFromFileObject((UriFileObject) srcFile);
+        } else {
+            try (FileContent fileContent = srcFile.getContent()) {
+                try (InputStream stream = fileContent.getInputStream()) {
+                    ObjectMetadata objectMetadata = getFileContentInfoAsObjectMetadata(fileContent);
+                    if (objectMetadata == null) {
+                        putObject(stream);
+                    } else {
+                        putObject(stream, objectMetadata);
+                    }
+                } catch (IOException e) {
+                    throw new FileSystemException(e);
                 }
-            } catch (IOException e) {
-                throw new FileSystemException(e);
             }
         }
     }

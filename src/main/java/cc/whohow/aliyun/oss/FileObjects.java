@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 
 /**
  * FileObjects 工具
+ *
  * @see java.nio.file.Files
  */
 public class FileObjects {
@@ -58,14 +59,14 @@ public class FileObjects {
     /**
      * 创建临时文件
      */
-    public static FileObject createTempFile(FileObject dir, String suffix)  {
+    public static FileObject createTempFile(FileObject dir, String suffix) {
         return createTempFile(dir, null, suffix);
     }
 
     /**
      * 创建临时文件
      */
-    public static FileObject createTempFile(FileObject dir, String prefix, String suffix)  {
+    public static FileObject createTempFile(FileObject dir, String prefix, String suffix) {
         try {
             FileObject temp = dir.getChild(newRandomPath(prefix, suffix));
             temp.createFile();

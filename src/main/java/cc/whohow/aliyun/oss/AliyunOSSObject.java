@@ -1,13 +1,10 @@
 package cc.whohow.aliyun.oss;
 
 import cc.whohow.aliyun.oss.file.FileTree;
-import cc.whohow.aliyun.oss.net.ApacheHttpClient;
+import cc.whohow.aliyun.oss.net.HttpURLConnection;
 import cc.whohow.aliyun.oss.tree.TreePreOrderIterator;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.*;
-import org.apache.http.Header;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
 
 import java.io.*;
 import java.net.URI;
@@ -135,21 +132,19 @@ public class AliyunOSSObject {
      * 上传链接
      */
     public String putObject(URL url) {
-        try (CloseableHttpResponse response = ApacheHttpClient.get().execute(new HttpGet(url.toString()))) {
-            Header contentType = response.getFirstHeader("Content-Type");
-            Header contentLength = response.getFirstHeader("Content-Length");
+        try (HttpURLConnection connection = new HttpURLConnection(url)) {
+            String contentType = connection.getContentType();
+            long contentLength = connection.getContentLengthLong();
 
             ObjectMetadata objectMetadata = new ObjectMetadata();
             if (contentType != null) {
-                objectMetadata.setContentType(contentType.getValue());
+                objectMetadata.setContentType(contentType);
             }
-            if (contentLength != null &&
-                    contentLength.getValue() != null &&
-                    !contentLength.getValue().isEmpty()) {
-                objectMetadata.setContentLength(Long.parseLong(contentLength.getValue()));
+            if (contentLength > 0) {
+                objectMetadata.setContentLength(contentLength);
             }
 
-            try (InputStream stream = response.getEntity().getContent()) {
+            try (InputStream stream = connection.getInputStream()) {
                 return putObject(stream, objectMetadata);
             }
         } catch (IOException e) {
@@ -161,8 +156,8 @@ public class AliyunOSSObject {
      * 上传链接
      */
     public String putObject(URL url, ObjectMetadata objectMetadata) {
-        try (InputStream stream = url.openStream()) {
-            return putObject(stream, objectMetadata);
+        try (HttpURLConnection connection = new HttpURLConnection(url)) {
+            return putObject(connection.getInputStream(), objectMetadata);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

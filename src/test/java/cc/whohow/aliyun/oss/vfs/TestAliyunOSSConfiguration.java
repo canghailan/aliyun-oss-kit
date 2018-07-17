@@ -7,6 +7,7 @@ import cc.whohow.aliyun.oss.configuration.AliyunOSSConfigurationSource;
 import cc.whohow.configuration.FileBasedConfigurationManager;
 import cc.whohow.configuration.provider.PropertiesConfiguration;
 import cc.whohow.configuration.provider.YamlConfiguration;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -46,11 +47,11 @@ public class TestAliyunOSSConfiguration {
         FileBasedConfigurationManager configurationManager = new AliyunOSSConfigurationManager(
                 AliyunOSS.getAliyunOSSObjectAsync("oss://yt-temp/test-kit/conf/"));
 
-        try (YamlConfiguration configuration = new YamlConfiguration(configurationManager.get("constants.yml"))) {
+        try (YamlConfiguration<JsonNode> configuration = new YamlConfiguration<>(configurationManager.get("constants.yml"), JsonNode.class)) {
             System.out.println(configuration.get());
         }
 
-        new YamlConfiguration(configurationManager.get("constants.yml")).getAndWatch(System.out::println);
+        new YamlConfiguration<>(configurationManager.get("constants.yml"), JsonNode.class).getAndWatch(System.out::println);
 
         Thread.sleep(180_1000L);
     }
