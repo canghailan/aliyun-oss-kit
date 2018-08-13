@@ -51,8 +51,23 @@ public class AliyunOSS {
         return Collections.unmodifiableCollection(CONFIGURATIONS.values());
     }
 
+    /**
+     * 查询指定bucket配置
+     */
+    public static AliyunOSSUri getConfiguration(String bucketName) {
+        return CONFIGURATIONS.get(bucketName);
+    }
+
     public static Map<String, URI> getCnames() {
         return Collections.unmodifiableMap(CNAME);
+    }
+
+    /**
+     * 查询指定Cname配置
+     */
+    public static URI getCname(AliyunOSSUri uri) {
+        String key = "oss://" + uri.getBucketName() + "/" + uri.getKey();
+        return CNAME.get(key);
     }
 
     /**
