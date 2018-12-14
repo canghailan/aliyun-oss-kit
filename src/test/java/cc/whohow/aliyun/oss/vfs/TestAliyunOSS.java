@@ -1,11 +1,13 @@
 package cc.whohow.aliyun.oss.vfs;
 
 import cc.whohow.aliyun.oss.AliyunOSS;
+import cc.whohow.aliyun.oss.AliyunOSSContext;
 import cc.whohow.aliyun.oss.AliyunOSSOutputStream;
 import cc.whohow.aliyun.oss.AliyunOSSUri;
 import com.aliyun.oss.common.utils.IOUtils;
 import com.aliyun.oss.model.OSSObject;
 import com.aliyun.oss.model.ObjectMetadata;
+import com.aliyuncs.profile.DefaultProfile;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -14,10 +16,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -44,6 +43,16 @@ public class TestAliyunOSS {
     @AfterClass
     public static void tearDown() {
         AliyunOSS.shutdown();
+    }
+
+    @Test
+    public void testAliyunOSSContext() {
+        long t = System.currentTimeMillis();
+        try (AliyunOSSContext context = new AliyunOSSContext()) {
+            context.addProfile(DefaultProfile.getProfile(null, accessKeyId, secretAccessKey));
+            System.out.println(context);
+        }
+        System.out.println((System.currentTimeMillis() - t) + "ms");
     }
 
     @Test
