@@ -4,15 +4,20 @@ import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.AliyunOSSUri;
 import cc.whohow.aliyun.oss.FileObjects;
 import cc.whohow.aliyun.oss.vfs.copy.FileObjectCopier;
+import cc.whohow.aliyun.oss.vfs.operations.AliyunOSSFileOperationsProvider;
 import cc.whohow.aliyun.oss.vfs.operations.CompareFileContent;
 import cc.whohow.aliyun.oss.vfs.operations.GetSignedUrl;
 import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
+import cc.whohow.vfs.FluentFileObject;
+import cc.whohow.vfs.RootFileSystem;
+import cc.whohow.vfs.synchronize.FileSynchronizer;
 import org.apache.commons.vfs2.*;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.time.Duration;
@@ -20,13 +25,14 @@ import java.util.Comparator;
 import java.util.NavigableMap;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.Executors;
 
 public class TestAliyunOSSFileSystem {
     private static String accessKeyId = "";
     private static String secretAccessKey = "";
     private static String bucketName = "yt-temp";
     private static String endpoint = "oss-cn-hangzhou.aliyuncs.com";
-    private static FileSystemManager vfs;
+    private static AliyunOSSFileSystem vfs;
 
     @BeforeClass
     @SuppressWarnings("all")
@@ -38,11 +44,12 @@ public class TestAliyunOSSFileSystem {
             secretAccessKey = properties.getProperty("secretAccessKey");
         }
 
-        AliyunOSS.configure(new AliyunOSSUri(accessKeyId, secretAccessKey, bucketName, endpoint, null));
-        AliyunOSS.configureCname(new AliyunOSSUri("oss://yt-temp/test-fs/copy/"), "https://temp.yitong.com/test-fs/copy/");
-
-        vfs = new AliyunOSSVirtualFileSystem();
-        VFS.setManager(vfs);
+        AliyunOSS.configure(accessKeyId, secretAccessKey);
+        AliyunOSS.configureCname("oss://yt-temp/test-fs/copy/", "https://temp.yitong.com/test-fs/copy/");
+        AliyunOSS.setExecutor(Executors.newScheduledThreadPool(8));
+        vfs = AliyunOSSFileSystem.getInstance();
+        VFS.setManager(new RootFileSystem());
+        VFS.getManager().addOperationProvider("oss", new AliyunOSSFileOperationsProvider());
     }
 
     @AfterClass
@@ -78,6 +85,49 @@ public class TestAliyunOSSFileSystem {
     public void testExists() throws Exception {
         Assert.assertFalse(vfs.resolveFile("oss://yt-temp/test-fs/url/random.jpg").exists());
         Assert.assertTrue(vfs.resolveFile("oss://yt-temp/test-fs/copy/random.jpg").exists());
+    }
+
+    @Test
+    public void testList() throws Exception {
+        new FluentFileObject(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
+                .list()
+                .forEach(System.out::println);
+    }
+
+    @Test
+    public void testListRecursively() throws Exception {
+        new FluentFileObject(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
+                .listRecursively()
+                .forEach(System.out::println);
+    }
+
+    @Test
+    public void testFind() throws Exception {
+        new FluentFileObject(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
+                .find()
+                .forEach(System.out::println);
+    }
+
+    @Test
+    public void testFindFile() throws Exception {
+        new FluentFileObject(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
+                .find(Selectors.SELECT_FILES)
+                .forEach(System.out::println);
+    }
+
+    @Test
+    public void testFindExcludeSelf() throws Exception {
+        new FluentFileObject(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
+                .find(Selectors.EXCLUDE_SELF)
+                .forEach(System.out::println);
+    }
+
+    @Test
+    public void testSelectFiles() throws Exception {
+        System.out.println("SELECT_FILES");
+        for (FileObject file : vfs.resolveFile("oss://yt-temp/test-kit/").findFiles(Selectors.SELECT_FILES)) {
+            System.out.println(file);
+        }
     }
 
     @Test
@@ -313,5 +363,85 @@ public class TestAliyunOSSFileSystem {
                 .withSourceOperation(ProcessImage.class, (s, op) -> op.setParameters("@!thumb.jpg").get())
                 .call();
         System.out.println(file);
+    }
+
+
+    @Test
+    public void testSyncFromFile() throws Throwable {
+//        FileObject file = VFS.getManager().toFileObject(new File("src"));
+//        new FileSynchronizer(file, )
+//        new DiffFormatter().print(AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/sync/src/")
+//                .syncFromFile(new File("src")));
+    }
+
+    //
+//    @Test
+//    public void testConfigurationManager() throws Exception {
+//        FileBasedConfigurationManager configurationManager = new VfsConfigurationManager(
+//                AliyunOSS.getAliyunOSSObjectAsync("oss://yt-temp/test-kit/conf/"));
+//
+//        try (YamlConfiguration<JsonNode> configuration = new YamlConfiguration<>(configurationManager.get("constants.yml"), JsonNode.class)) {
+//            System.out.println(configuration.get());
+//        }
+//
+//        new YamlConfiguration<>(configurationManager.get("constants.yml"), JsonNode.class).getAndWatch(System.out::println);
+//
+//        Thread.sleep(180_1000L);
+//    }
+//
+//    @Test
+//    public void testConfiguration() throws Exception {
+//        try (PropertiesConfiguration configuration = new PropertiesConfiguration(new AliyunOSSConfigurationSource(
+//                AliyunOSS.getAliyunOSSObject("")))) {
+//            System.out.println(configuration.get());
+//        }
+//    }
+
+    @Test
+    public void testWatchFileObject() throws Exception {
+        FileObject fileObject = vfs.resolveFile("oss://yt-temp/test-fs/");
+        fileObject.getFileSystem().addListener(fileObject, new FileListener() {
+            @Override
+            public void fileCreated(FileChangeEvent event) throws Exception {
+                System.out.println("+ " + event.getFile());
+            }
+
+            @Override
+            public void fileDeleted(FileChangeEvent event) throws Exception {
+            }
+
+            @Override
+            public void fileChanged(FileChangeEvent event) throws Exception {
+            }
+        });
+        fileObject.getFileSystem().addListener(fileObject, new FileListener() {
+            @Override
+            public void fileCreated(FileChangeEvent event) throws Exception {
+            }
+
+            @Override
+            public void fileDeleted(FileChangeEvent event) throws Exception {
+                System.out.println("- " + event.getFile());
+            }
+
+            @Override
+            public void fileChanged(FileChangeEvent event) throws Exception {
+            }
+        });
+        fileObject.getFileSystem().addListener(fileObject, new FileListener() {
+            @Override
+            public void fileCreated(FileChangeEvent event) throws Exception {
+            }
+
+            @Override
+            public void fileDeleted(FileChangeEvent event) throws Exception {
+            }
+
+            @Override
+            public void fileChanged(FileChangeEvent event) throws Exception {
+                System.out.println("* " + event.getFile());
+            }
+        });
+        Thread.sleep(180_000L);
     }
 }

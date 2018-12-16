@@ -1,45 +1,53 @@
 package cc.whohow.aliyun.oss.vfs;
 
-import cc.whohow.aliyun.oss.AliyunOSS;
-import cc.whohow.aliyun.oss.AliyunOSSObjectAsync;
-import cc.whohow.aliyun.oss.tree.TreePostOrderIterator;
-import cc.whohow.aliyun.oss.tree.TreePreOrderIterator;
-import cc.whohow.aliyun.oss.vfs.find.FileObjectFindTree;
+import cc.whohow.aliyun.oss.AliyunOSSObject;
+import cc.whohow.vfs.*;
+import cc.whohow.vfs.operations.ProviderFileOperations;
+import cc.whohow.vfs.provider.uri.UriFileObject;
+import cc.whohow.vfs.selector.FileSelectorFilter;
+import cc.whohow.vfs.selector.FileSelectors;
+import cc.whohow.vfs.tree.FileObjectFindTree;
+import cc.whohow.vfs.tree.FileObjectTree;
+import cc.whohow.vfs.tree.TreeBreadthFirstIterator;
+import cc.whohow.vfs.tree.TreePostOrderIterator;
 import com.aliyun.oss.model.ObjectMetadata;
 import org.apache.commons.vfs2.*;
 import org.apache.commons.vfs2.operations.FileOperations;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
  * 阿里云文件对象
  */
-public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObject {
-    protected final FileSystem fileSystem;
+public class AliyunOSSFileObject extends AliyunOSSObject
+        implements DataFileObject, ListableFileObject,SimplifyFileObject, StatelessFileObject {
+    protected final AliyunOSSFileSystem fileSystem;
     protected final AliyunOSSFileName name;
 
-    public AliyunOSSFileObject(FileSystem fileSystem, AliyunOSSFileName name) {
-        super(AliyunOSS.getOSS(name), name.getBucketName(), name.getKey(), AliyunOSS.getExecutor());
+    public AliyunOSSFileObject(String name) {
+        this(AliyunOSSFileSystem.getInstance(), new AliyunOSSFileName(name));
+    }
+
+    public AliyunOSSFileObject(AliyunOSSFileSystem fileSystem, AliyunOSSFileName name) {
+        super(fileSystem.getOSS(name), name.getBucketName(), name.getKey());
         this.fileSystem = fileSystem;
         this.name = name;
-    }
-
-    /**
-     * MoveTo
-     */
-    public boolean canRenameTo(FileObject newFile) {
-        return true;
-    }
-
-    public void close() {
-        // do nothing
     }
 
     /**
@@ -47,142 +55,83 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
      */
     public void copyFrom(FileObject srcFile, FileSelector selector) throws FileSystemException {
         if (srcFile.isFile()) {
-            if (selector == Selectors.SELECT_ALL ||
-                    selector == Selectors.SELECT_SELF ||
-                    selector == Selectors.SELECT_SELF_AND_CHILDREN ||
-                    selector == Selectors.SELECT_FILES ||
-                    srcFile.findFiles(selector).length > 0) {
-                // 拷贝全部快速方法
-                copyAllFrom(srcFile);
+            if (FileSelectors.include(selector, srcFile)) {
+                if (isFile()) {
+                    // 拷贝文件
+                    copyFile(srcFile);
+                } else {
+                    // 如果将文件拷贝到目录，自动创建同名文件
+                    getChild(srcFile.getName().getBaseName()).copyFile(srcFile);
+                }
             }
-            // 未选中，不拷贝
-        } else if (isFile()) {
-            // 不允许将目录拷贝到文件
-            throw new FileSystemException("vfs.provider/copy-file.error", srcFile, this);
-        } else {
+        } else if (srcFile.isFolder()) {
+            if (isFile()) {
+                throw new FileSystemException("vfs.provider/copy-file.error", srcFile, this);
+            }
             if (selector == Selectors.SELECT_ALL ||
                     selector == Selectors.EXCLUDE_SELF ||
                     selector == Selectors.SELECT_FILES) {
-                // 拷贝全部快速方法
-                copyAllFrom(srcFile);
-            } else if (srcFile instanceof AliyunOSSFileObject) {
-                AliyunOSSFileObject src = (AliyunOSSFileObject) srcFile;
-                if (isCopyable(src)) {
-                    // 阿里云OSS原生拷贝
-                    for (FileSelectInfo selected : src.findFiles(selector, false)) {
-                        AliyunOSSFileObject file = (AliyunOSSFileObject) selected.getFile();
-                        if (file.isFile()) {
-                            String relative = selected.getFile().getName()
-                                    .getRelativeName(selected.getBaseFolder().getName());
-                            getDescendant(relative).copyFromObject(file);
-                        }
-                    }
-                } else {
-                    // 阿里云OSS模拟拷贝
-                    for (FileSelectInfo selected : src.findFiles(selector, false)) {
-                        AliyunOSSFileObject file = (AliyunOSSFileObject) selected.getFile();
-                        if (file.isFile()) {
-                            String relative = selected.getFile().getName()
-                                    .getRelativeName(selected.getBaseFolder().getName());
-                            getDescendant(relative).putObject(file);
-                        }
-                    }
-                }
+                // 拷贝文件夹
+                copyFolder(srcFile);
+            } else if (selector == Selectors.SELECT_FOLDERS) {
+                // 无需拷贝
+                return;
             } else {
-                // 遍历所有选中文件，逐个拷贝
-                FileName srcFileName = srcFile.getName();
-                for (FileObject file : srcFile.findFiles(selector)) {
-                    if (file.isFile()) {
-                        String relative = file.getName().getRelativeName(srcFileName);
-                        getDescendant(relative).copyFromFileObject(file);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * 快速拷贝所有文件
-     */
-    public void copyAllFrom(FileObject srcFile) throws FileSystemException {
-        if (srcFile instanceof AliyunOSSFileObject) {
-            AliyunOSSFileObject src = (AliyunOSSFileObject) srcFile;
-            if (src.isFile()) {
-                // 如果将文件拷贝到目录，自动创建同名文件
-                AliyunOSSFileObject dst = isFile() ? this : getChild(srcFile.getName().getBaseName());
-                dst.copyFromFileObject(src);
-            } else {
-                if (isFile()) {
-                    // 不允许将目录拷贝到文件
-                    throw new FileSystemException("vfs.provider/copy-file.error", srcFile, this);
-                } else if (isCopyable(src)) {
-                    // 阿里云OSS原生拷贝
-                    copyFromObjectRecursively(src);
-                } else {
-                    // 阿里云OSS模拟拷贝
-                    putObjectRecursively(src);
-                }
-            }
-        } else {
-            if (srcFile.isFile()) {
-                // 如果将文件拷贝到目录，自动创建同名文件
-                AliyunOSSFileObject dst = isFile() ? this : getChild(srcFile.getName().getBaseName());
-                // 拷贝文件流
-                dst.copyFromFileObject(srcFile);
-            } else {
-                if (isFile()) {
-                    // 不允许将目录拷贝到文件
-                    throw new FileSystemException("vfs.provider/copy-file.error", srcFile, this);
-                } else {
-                    // 遍历所有文件，逐个拷贝
-                    FileName srcFileName = srcFile.getName();
-                    for (FileObject file : srcFile) {
-                        if (file.isFile()) {
-                            String relative = file.getName().getRelativeName(srcFileName);
-                            getDescendant(relative).copyFromFileObject(file);
+                if (srcFile instanceof ListableFileObject) {
+                    ListableFileObject listableFileObject = (ListableFileObject) srcFile;
+                    if (selector == Selectors.SELECT_CHILDREN ||
+                            selector == Selectors.SELECT_SELF_AND_CHILDREN) {
+                        // 子节点
+                        try (Stream<FileObject> stream = listableFileObject.list()) {
+                            copyFileList(srcFile, stream.iterator());
                         }
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * 拷贝阿里云文件
-     */
-    protected void copyFromFileObject(AliyunOSSFileObject srcFile) throws FileSystemException {
-        if (isCopyable(srcFile)) {
-            // 阿里云OSS原生拷贝
-            copyFromObject(srcFile);
-        } else {
-            // 阿里云OSS模拟拷贝
-            putObject(srcFile);
-        }
-    }
-
-    /**
-     * 拷贝链接
-     */
-    protected void copyFromFileObject(UriFileObject srcFile) throws FileSystemException {
-        putObject(srcFile.getURL());
-    }
-
-    /**
-     * 拷贝一般文件
-     */
-    protected void copyFromFileObject(FileObject srcFile) throws FileSystemException {
-        if (srcFile instanceof AliyunOSSFileObject) {
-            copyFromFileObject((AliyunOSSFileObject) srcFile);
-        } else if (srcFile instanceof UriFileObject) {
-            copyFromFileObject((UriFileObject) srcFile);
-        } else {
-            try (FileContent fileContent = srcFile.getContent()) {
-                try (InputStream stream = fileContent.getInputStream()) {
-                    ObjectMetadata objectMetadata = getFileContentInfoAsObjectMetadata(fileContent);
-                    if (objectMetadata == null) {
-                        putObject(stream);
                     } else {
+                        // 查找、拷贝
+                        try (Stream<FileObject> stream = listableFileObject.listRecursively(selector)) {
+                            copyFileList(srcFile, stream.iterator());
+                        }
+                    }
+                } else {
+                    if (selector == Selectors.SELECT_CHILDREN ||
+                            selector == Selectors.SELECT_SELF_AND_CHILDREN) {
+                        // 子节点
+                        copyFileList(srcFile, Arrays.asList(srcFile.getChildren()).iterator());
+                    } else {
+                        // 查找、拷贝
+                        List<FileObject> list = new ArrayList<>();
+                        srcFile.findFiles(selector, false, list);
+                        copyFileList(srcFile, list.iterator());
+                    }
+                }
+            }
+        } else {
+            throw new FileSystemException("vfs.provider/copy-file.error", srcFile, this);
+        }
+    }
+
+    public void copyFile(FileObject fileObject) throws FileSystemException {
+//        assert isFile();
+//        assert fileObject.isFile();
+        if (fileObject instanceof AliyunOSSFileObject) {
+            AliyunOSSFileObject f = (AliyunOSSFileObject) fileObject;
+            if (isCopyable(f)) {
+                copyFromObject(f);
+            } else {
+                putObject(f);
+            }
+        } else if (fileObject instanceof UriFileObject) {
+            putObject(fileObject.getURL());
+        } else {
+            try (FileContent fileContent = fileObject.getContent()) {
+                try (InputStream stream = fileContent.getInputStream()) {
+                    try {
+                        FileContentInfo fileContentInfo = fileContent.getContentInfo();
+                        ObjectMetadata objectMetadata = new ObjectMetadata();
+                        objectMetadata.setContentType(fileContentInfo.getContentType());
+                        objectMetadata.setContentEncoding(fileContentInfo.getContentEncoding());
                         putObject(stream, objectMetadata);
+                    } catch (Exception ignore) {
+                        putObject(stream);
                     }
                 } catch (IOException e) {
                     throw new FileSystemException(e);
@@ -191,18 +140,31 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
         }
     }
 
-    /**
-     * 获取文件内容信息，并转为ObjectMetadata
-     */
-    private ObjectMetadata getFileContentInfoAsObjectMetadata(FileContent fileContent) {
-        try {
-            FileContentInfo fileContentInfo = fileContent.getContentInfo();
-            ObjectMetadata objectMetadata = new ObjectMetadata();
-            objectMetadata.setContentType(fileContentInfo.getContentType());
-            objectMetadata.setContentEncoding(fileContentInfo.getContentEncoding());
-            return objectMetadata;
-        } catch (Exception e) {
-            return null;
+    public void copyFolder(FileObject fileObject) throws FileSystemException {
+//        assert isFolder();
+//        assert fileObject.isFolder();
+        if (fileObject instanceof AliyunOSSFileObject) {
+            AliyunOSSFileObject f = (AliyunOSSFileObject) fileObject;
+            if (isCopyable(f)) {
+                copyFromObjectRecursively(f);
+            } else {
+                putObjectRecursively(f);
+            }
+        } else {
+            copyFileList(fileObject, fileObject.iterator());
+        }
+    }
+
+    public void copyFileList(FileObject fileObject, Iterator<FileObject> iterator) throws FileSystemException {
+//        assert isFolder();
+//        assert fileObject.isFolder();
+        FileName name = fileObject.getName();
+        while (iterator.hasNext()) {
+            FileObject file = iterator.next();
+            if (file.isFile()) {
+                String relative = file.getName().getRelativeName(name);
+                getDescendant(relative).copyFile(file);
+            }
         }
     }
 
@@ -220,67 +182,52 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
         // do nothing
     }
 
-    /**
-     * 删除文件，但删除所有下级文件
-     */
-    public boolean delete() {
+    @Override
+    public boolean delete() throws FileSystemException {
         if (isFile()) {
-            deleteObject();
-            return true;
+            if (exists()) {
+                deleteObject();
+                return true;
+            } else {
+                return false;
+            }
         } else {
-            return false;
+            return !find(Selectors.EXCLUDE_SELF).findAny().isPresent();
         }
     }
 
     /**
      * 删除选中文件
      */
-    public int delete(FileSelector selector) {
+    public int delete(FileSelector selector) throws FileSystemException {
         if (isFile()) {
-            if (selector == Selectors.SELECT_ALL ||
-                    selector == Selectors.SELECT_SELF ||
-                    selector == Selectors.SELECT_SELF_AND_CHILDREN ||
-                    selector == Selectors.SELECT_FILES ||
-                    findFiles(selector).length > 0) {
-                // 删除全部快速方法
-                return deleteAll();
+            // 文件
+            if (FileSelectors.include(selector, this)) {
+                deleteObject();
+                return 1;
             } else {
                 return 0;
             }
-        } else {
-            if (selector == Selectors.SELECT_ALL ||
-                    selector == Selectors.EXCLUDE_SELF ||
-                    selector == Selectors.SELECT_FILES) {
-                // 删除全部快速方法
-                return deleteAll();
-            } else {
-                // 查找并删除
-                return findFiles(selector, false).stream()
-                        .map(selectInfo -> (AliyunOSSFileObject) selectInfo.getFile())
-                        .filter(AliyunOSSFileObject::isFile)
-                        .map(AliyunOSSFileObject::delete)
-                        .mapToInt(deleted -> deleted ? 1 : 0)
-                        .sum();
-            }
         }
-    }
-
-    /**
-     * 删除自身及所有下级文件
-     */
-    public int deleteAll() {
-        if (isFile()) {
-            deleteObject();
-            return 1;
-        } else {
+        // 目录
+        if (selector == Selectors.SELECT_ALL ||
+                selector == Selectors.EXCLUDE_SELF ||
+                selector == Selectors.SELECT_FILES) {
+            // 删除所有
             return deleteObjectsRecursively();
+        } else {
+            // 查找并删除
+            return (int) find(selector)
+                    .filter(FileObjectFns::isFile)
+                    .peek(FileObjectFns::deleteAllQuietly)
+                    .count();
         }
     }
 
     /**
      * 文件是否存在
      */
-    public boolean exists() {
+    public boolean exists() throws FileSystemException {
         if (isFile()) {
             return doesObjectExist();
         } else {
@@ -288,90 +235,65 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
         }
     }
 
-    /**
-     * 查找文件
-     */
-    public FileObject[] findFiles(FileSelector selector) {
-        if (selector == Selectors.SELECT_SELF) {
-            return new FileObject[]{this};
-        }
+    @Override
+    public Stream<FileObject> find(FileSelector selector, boolean depthwise) throws FileSystemException {
         if (isFile()) {
-            if (selector == Selectors.SELECT_ALL ||
-                    selector == Selectors.SELECT_SELF_AND_CHILDREN ||
-                    selector == Selectors.SELECT_FILES) {
-                return new FileObject[]{this};
-            }
-        } else {
-            if (selector == Selectors.SELECT_ALL) {
-                AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, true);
-                return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false)
-                        .toArray(FileObject[]::new);
-            } else if (selector == Selectors.SELECT_SELF_AND_CHILDREN) {
-                List<FileObject> files = new ArrayList<>();
-                files.add(this);
-                AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, false);
-                iterator.forEachRemaining(files::add);
-                return files.toArray(new FileObject[0]);
-            } else if (selector == Selectors.SELECT_CHILDREN) {
-                AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, false);
-                return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false)
-                        .toArray(FileObject[]::new);
-            } else if (selector == Selectors.EXCLUDE_SELF) {
-                return stream()
-                        .toArray(FileObject[]::new);
-            } else if (selector == Selectors.SELECT_FILES) {
-                return stream()
-                        .map(file -> (AliyunOSSFileObject) file)
-                        .filter(AliyunOSSFileObject::isFile)
-                        .toArray(FileObject[]::new);
-            } else if (selector == Selectors.SELECT_FOLDERS) {
-                return stream()
-                        .map(file -> (AliyunOSSFileObject) file)
-                        .filter(AliyunOSSFileObject::isFolder)
-                        .toArray(FileObject[]::new);
+            // 文件
+            if (FileSelectors.include(selector, this)) {
+                return Stream.of(this);
+            } else {
+                return Stream.empty();
             }
         }
-        return findFiles(selector, false).stream()
-                .map(FileSelectInfo::getFile)
-                .toArray(FileObject[]::new);
+        // 目录
+        if (selector == Selectors.SELECT_SELF) {
+            return Stream.of(this);
+        }
+        if (selector == Selectors.SELECT_SELF_AND_CHILDREN) {
+            AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, false);
+            return Stream.concat(
+                    Stream.of(this),
+                    StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0),false));
+        }
+        if (selector == Selectors.SELECT_CHILDREN) {
+            AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, false);
+            return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0),false);
+        }
+        if (depthwise) {
+            // 深度优先
+            return new FileObjectFindTree(this, selector, TreePostOrderIterator::new).stream()
+                    .map(FileSelectInfo::getFile);
+        }
+        // 仅文件，原生查询优化
+        if (selector == Selectors.SELECT_FILES) {
+            AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, true, true, false);
+            return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0),false);
+        }
+        // 默认广度优先，程序性能更好
+        return new FileObjectFindTree(this, selector, TreeBreadthFirstIterator::new).stream()
+                .map(FileSelectInfo::getFile);
+    }
+
+    @Override
+    public void findFiles(FileSelector selector, boolean depthwise, List<FileObject> selected) throws FileSystemException {
+        ListableFileObject.super.findFiles(selector, depthwise, selected);
     }
 
     /**
      * 查找文件
      */
-    public FileObjectFindTree findFiles(FileSelector selector, boolean depthwise) {
-        return depthwise ?
-                new FileObjectFindTree(this, selector, TreePostOrderIterator::new) :
-                new FileObjectFindTree(this, selector, TreePreOrderIterator::new);
-    }
-
-    /**
-     * 查找文件
-     */
-    public void findFiles(FileSelector selector, boolean depthwise, List<FileObject> selected) {
-        findFiles(selector, depthwise).stream().map(FileSelectInfo::getFile).forEach(selected::add);
+    public FileObject[] findFiles(FileSelector selector) throws FileSystemException {
+        return ListableFileObject.super.findFiles(selector);
     }
 
     /**
      * 获取下级文件
      */
     public AliyunOSSFileObject getChild(String name) throws FileSystemException {
-        if (isFile()) {
+        if (!isFolder()) {
             throw new FileSystemException("vfs.provider/list-children-not-folder.error", this);
         }
         return new AliyunOSSFileObject(getFileSystem(), getName().resolveChild(name));
-    }
-
-    /**
-     * 获取下级文件列表
-     */
-    public FileObject[] getChildren() throws FileSystemException {
-        if (isFile()) {
-            throw new FileSystemException("vfs.provider/list-children-not-folder.error", this);
-        }
-        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(
-                new AliyunOSSFileObjectIterator(this, false), 0), false)
-                .toArray(FileObject[]::new);
     }
 
     /**
@@ -382,13 +304,13 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
     }
 
     public FileOperations getFileOperations() {
-        return new AliyunOSSFileOperations(this);
+        return new ProviderFileOperations(this);
     }
 
     /**
      * 获取文件系统
      */
-    public FileSystem getFileSystem() {
+    public AliyunOSSFileSystem getFileSystem() {
         return fileSystem;
     }
 
@@ -414,14 +336,7 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
      * 获取展示地址
      */
     public String getPublicURIString() {
-        return AliyunOSS.getUrl(getName());
-    }
-
-    /**
-     * 获取文件类型
-     */
-    public FileType getType() {
-        return getName().getType();
+        return fileSystem.getUrl(getName());
     }
 
     /**
@@ -435,56 +350,14 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
         }
     }
 
-    public boolean isAttached() {
+    @Override
+    public boolean isReadable() throws FileSystemException {
         return true;
     }
 
-    public boolean isContentOpen() {
+    @Override
+    public boolean isWriteable() throws FileSystemException {
         return true;
-    }
-
-    public boolean isExecutable() {
-        return false;
-    }
-
-    public boolean isFile() {
-        return getType() == FileType.FILE;
-    }
-
-    public boolean isFolder() {
-        return getType() == FileType.FOLDER;
-    }
-
-    public boolean isHidden() {
-        return false;
-    }
-
-    public boolean isReadable() {
-        return true;
-    }
-
-    public boolean isWriteable() {
-        return true;
-    }
-
-    /**
-     * 移动文件
-     */
-    public void moveTo(FileObject destFile) throws FileSystemException {
-        destFile.copyFrom(this, Selectors.SELECT_ALL);
-        delete();
-    }
-
-    public void refresh() {
-        // do nothing
-    }
-
-    public FileObject resolveFile(String path) throws FileSystemException {
-        if (AliyunOSSFileName.isRelative(path)) {
-            return getDescendant(path);
-        } else {
-            return getFileSystem().getFileSystemManager().resolveFile(path);
-        }
     }
 
     public FileObject resolveFile(String name, NameScope scope) throws FileSystemException {
@@ -493,16 +366,21 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
                 return getChild(name);
             }
             case DESCENDENT: {
-                if (name.isEmpty()) {
+                AliyunOSSFileObject file = getDescendant(name);
+                if (file.getName().equals(getName())) {
                     throw new FileSystemException("vfs.provider/resolve-file.error", name);
                 }
-                return getDescendant(name);
+                return file;
             }
             case DESCENDENT_OR_SELF: {
                 return getDescendant(name);
             }
             case FILE_SYSTEM: {
-                return resolveFile(name);
+                if (AliyunOSSFileName.isRelative(name)) {
+                    return getRelative(name);
+                } else {
+                    return getFileSystem().getFileSystemManager().resolveFile(name);
+                }
             }
             default: {
                 throw new IllegalStateException();
@@ -510,34 +388,49 @@ public class AliyunOSSFileObject extends AliyunOSSObjectAsync implements FileObj
         }
     }
 
-    public AliyunOSSFileObject getDescendant(String path) {
+    @Override
+    public boolean setReadable(boolean readable, boolean ownerOnly) throws FileSystemException {
+        return readable && !ownerOnly;
+    }
+
+    @Override
+    public boolean setWritable(boolean writable, boolean ownerOnly) throws FileSystemException {
+        return writable && !ownerOnly;
+    }
+
+    public AliyunOSSFileObject getRelative(String path) {
         return new AliyunOSSFileObject(getFileSystem(), getName().resolveRelative(path));
     }
 
-    public boolean setExecutable(boolean executable, boolean ownerOnly) throws FileSystemException {
-        throw new FileSystemException("vfs.provider/set-executable.error", this);
-    }
-
-    public boolean setReadable(boolean readable, boolean ownerOnly) throws FileSystemException {
-        throw new FileSystemException("vfs.provider/set-readable.error", this);
-    }
-
-    public boolean setWritable(boolean writable, boolean ownerOnly) throws FileSystemException {
-        throw new FileSystemException("vfs.provider/set-writeable.error", this);
-    }
-
-    public int compareTo(FileObject o) {
-        return getName().compareTo(o.getName());
+    public AliyunOSSFileObject getDescendant(String path) {
+        return getRelative(path);
     }
 
     public Iterator<FileObject> iterator() {
-        if (isFile()) {
-            return Collections.emptyIterator();
+        try {
+            if (isFolder()) {
+                return listRecursively().iterator();
+            } else {
+                return Collections.emptyIterator();
+            }
+        } catch (FileSystemException e) {
+            throw new UncheckedIOException(e);
         }
-        return new AliyunOSSFileObjectIterator(this, true);
     }
 
-    public Stream<FileObject> stream() {
-        return StreamSupport.stream(spliterator(), false);
+    protected <T> T httpGet(URL url, BiFunction<HttpRequest, HttpResponse, T> callback) {
+        try {
+            HttpUriRequest request = RequestBuilder.get(url.toURI()).build();
+            try (CloseableHttpResponse response = fileSystem.getHttpClient().execute(request)) {
+                if (response.getStatusLine().getStatusCode() >= HttpStatus.SC_BAD_REQUEST) {
+                    throw new UncheckedIOException(new IOException(response.getStatusLine().getReasonPhrase()));
+                }
+                return callback.apply(request, response);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 }

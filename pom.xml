@@ -51,9 +51,9 @@
             <version>3.3.0</version>
         </dependency>
         <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
-            <version>1.11</version>
+            <groupId>cc.whohow</groupId>
+            <artifactId>commons-vfs2-kit</artifactId>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -64,7 +64,7 @@
             <groupId>cc.whohow</groupId>
             <artifactId>configuration</artifactId>
             <version>1.0.6</version>
-            <scope>provided</scope>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

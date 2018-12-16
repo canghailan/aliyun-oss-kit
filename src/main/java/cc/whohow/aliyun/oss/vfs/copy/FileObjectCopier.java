@@ -11,7 +11,9 @@ import java.util.function.Function;
 
 /**
  * 文件拷贝工具
+ * @see cc.whohow.vfs.FluentFileObject
  */
+@Deprecated
 public class FileObjectCopier implements Callable<FileObject> {
     protected FileObject source;
     protected FileObject target;

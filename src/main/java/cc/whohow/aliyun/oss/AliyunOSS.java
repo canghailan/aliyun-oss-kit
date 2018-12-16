@@ -1,7 +1,6 @@
 package cc.whohow.aliyun.oss;
 
 import com.aliyun.oss.OSS;
-import com.aliyun.oss.model.Bucket;
 
 import java.net.URI;
 import java.util.*;
@@ -11,23 +10,52 @@ import java.util.concurrent.*;
  * 阿里云 OSS 全局配置及缓存
  */
 public class AliyunOSS {
-    private static final Set<AliyunOSSUri> PROFILES = new ConcurrentSkipListSet<>();
+    private static final Set<AliyunOSSUri> PROFILES = new CopyOnWriteArraySet<>();
     private static final AliyunOSSContext CONTEXT = new AliyunOSSContext();
-    private static final AliyunOSSCname CNAME = new AliyunOSSCname();
+    private static final AliyunOSSUrlFactory URL_FACTORY = new AliyunOSSUrlFactory(CONTEXT);
+    private static volatile ScheduledExecutorService EXECUTOR;
+
     /**
-     * 线程池
+     * 新增配置
      */
-    private static volatile ScheduledExecutorService executor;
+    public static void configure(String accessKeyId, String secretAccessKey) {
+        AliyunOSSUri profile = new AliyunOSSUri(
+                accessKeyId, secretAccessKey, null, null, null);
+        if (PROFILES.add(profile)) {
+            CONTEXT.addProfile(profile);
+        }
+    }
 
     /**
      * 新增配置
      */
     public static void configure(AliyunOSSUri uri) {
-        AliyunOSSUri profile = new AliyunOSSUri(
-                uri.getAccessKeyId(), uri.getSecretAccessKey(), null, null, null);
-        if (PROFILES.add(profile)) {
-            CONTEXT.addProfile(profile);
+        if (uri.getAccessKeyId() != null && uri.getSecretAccessKey() != null) {
+            configure(uri.getAccessKeyId(), uri.getSecretAccessKey());
         }
+    }
+
+    /**
+     * 配置Cname
+     */
+    public static void configureCname(String uri, String cname) {
+        configureCname(new AliyunOSSUri(uri), URI.create(cname));
+    }
+
+    /**
+     * 配置Cname
+     */
+    public static void configureCname(AliyunOSSUri uri, URI cname) {
+        URL_FACTORY.configureCname(uri, cname);
+    }
+
+
+    public static AliyunOSSContext getContext() {
+        return CONTEXT;
+    }
+
+    public static AliyunOSSUrlFactory getUrlFactory() {
+        return URL_FACTORY;
     }
 
     /**
@@ -59,24 +87,10 @@ public class AliyunOSS {
     }
 
     /**
-     * 获取OSS对象
-     */
-    public static AliyunOSSObjectAsync getAliyunOSSObjectAsync(String uri) {
-        return getAliyunOSSObjectAsync(new AliyunOSSUri(uri));
-    }
-
-    /**
-     * 获取OSS对象
-     */
-    public static AliyunOSSObjectAsync getAliyunOSSObjectAsync(AliyunOSSUri uri) {
-        return new AliyunOSSObjectAsync(getOSS(uri), uri.getBucketName(), uri.getKey(), executor);
-    }
-
-    /**
      * 关闭并回收资源
      */
     public static void shutdown() {
-        shutdownSafety(executor);
+        shutdownSafety(EXECUTOR);
         CONTEXT.close();
     }
 
@@ -94,59 +108,33 @@ public class AliyunOSS {
     }
 
     public static String getExtranetUrl(AliyunOSSUri uri) {
-        Bucket bucket = CONTEXT.getBucket(uri.getBucketName());
-        if (bucket == null) {
-            throw new IllegalStateException();
-        }
-        return "https://" + uri.getBucketName() + "." + bucket.getExtranetEndpoint() + "/" + uri.getKey();
+        return URL_FACTORY.getExtranetUrl(uri);
     }
 
     public static String getIntranetUrl(AliyunOSSUri uri) {
-        Bucket bucket = CONTEXT.getBucket(uri.getBucketName());
-        if (bucket == null) {
-            throw new IllegalStateException();
-        }
-        return "https://" + uri.getBucketName() + "." + bucket.getIntranetEndpoint() + "/" + uri.getKey();
+        return URL_FACTORY.getIntranetUrl(uri);
     }
 
     public static String getCnameUrl(AliyunOSSUri uri) {
-        return CNAME.getCnameUrl(uri);
+        return URL_FACTORY.getCnameUrl(uri);
     }
 
     public static String getCnameUrl(AliyunOSSUri uri, Date expires) {
-        return CNAME.getCnameUrl(uri, expires);
+        return URL_FACTORY.getCnameUrl(uri, expires);
     }
 
     public static String getUrl(AliyunOSSUri uri) {
-        String cnameUrl = getCnameUrl(uri);
-        if (cnameUrl != null) {
-            return cnameUrl;
-        }
-        return getExtranetUrl(uri);
-    }
-
-    /**
-     * 配置Cname
-     */
-    public static void configureCname(AliyunOSSUri uri, String cname) {
-        CNAME.configureCname(uri, cname);
-    }
-
-    /**
-     * 配置Cname
-     */
-    public static void configureCname(AliyunOSSUri uri, URI cname) {
-        CNAME.configureCname(uri, cname);
+        return URL_FACTORY.getUrl(uri);
     }
 
     public static ScheduledExecutorService getExecutor() {
-        return executor;
+        return EXECUTOR;
     }
 
     public static synchronized void setExecutor(ScheduledExecutorService executorService) {
-        if (executor != null) {
+        if (EXECUTOR != null) {
             throw new IllegalStateException();
         }
-        executor = executorService;
+        EXECUTOR = executorService;
     }
 }

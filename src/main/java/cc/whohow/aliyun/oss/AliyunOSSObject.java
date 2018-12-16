@@ -1,19 +1,26 @@
 package cc.whohow.aliyun.oss;
 
-import cc.whohow.aliyun.oss.file.FileTree;
-import cc.whohow.aliyun.oss.net.HttpURLConnection;
-import cc.whohow.aliyun.oss.tree.TreePreOrderIterator;
+import cc.whohow.vfs.tree.FileTree;
+import cc.whohow.vfs.tree.TreePreOrderIterator;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.*;
+import org.apache.http.*;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 
 import java.io.*;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -128,39 +135,56 @@ public class AliyunOSSObject {
         return count;
     }
 
-    /**
-     * 上传链接
-     */
-    public String putObject(URL url) {
-        try (HttpURLConnection connection = new HttpURLConnection(url)) {
-            String contentType = connection.getContentType();
-            long contentLength = connection.getContentLengthLong();
-
-            ObjectMetadata objectMetadata = new ObjectMetadata();
-            if (contentType != null) {
-                objectMetadata.setContentType(contentType);
-            }
-            if (contentLength > 0) {
-                objectMetadata.setContentLength(contentLength);
-            }
-
-            try (InputStream stream = connection.getInputStream()) {
-                return putObject(stream, objectMetadata);
+    protected <T> T httpGet(URL url, BiFunction<HttpRequest, HttpResponse, T> callback) {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpUriRequest request = RequestBuilder.get(url.toURI()).build();
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getStatusLine().getStatusCode() >= HttpStatus.SC_BAD_REQUEST) {
+                    throw new UncheckedIOException(new IOException(response.getStatusLine().getReasonPhrase()));
+                }
+                return callback.apply(request, response);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(e);
         }
     }
 
     /**
      * 上传链接
      */
+    public String putObject(URL url) {
+        return httpGet(url, (request, response) -> {
+            HttpEntity httpEntity = response.getEntity();
+            Header contentType = httpEntity.getContentType();
+            ObjectMetadata objectMetadata = new ObjectMetadata();
+            if (contentType != null) {
+                objectMetadata.setContentType(contentType.getValue());
+            }
+            if (httpEntity.getContentLength() > 0) {
+                objectMetadata.setContentLength(httpEntity.getContentLength());
+            }
+
+            try (InputStream stream = httpEntity.getContent()) {
+                return putObject(stream, objectMetadata);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
+    }
+
+    /**
+     * 上传链接
+     */
     public String putObject(URL url, ObjectMetadata objectMetadata) {
-        try (HttpURLConnection connection = new HttpURLConnection(url)) {
-            return putObject(connection.getInputStream(), objectMetadata);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return httpGet(url, (request, response) -> {
+            try (InputStream stream = response.getEntity().getContent()) {
+                return putObject(stream, objectMetadata);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
     }
 
     /**

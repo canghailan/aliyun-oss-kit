@@ -1,9 +1,11 @@
 package cc.whohow.aliyun.oss.vfs;
 
-import cc.whohow.aliyun.oss.file.FileTree;
-import cc.whohow.aliyun.oss.tree.TreeBreadthFirstIterator;
-import cc.whohow.aliyun.oss.tree.TreePostOrderIterator;
-import cc.whohow.aliyun.oss.tree.TreePreOrderIterator;
+import cc.whohow.aliyun.oss.vfs.operations.AliyunOSSProcessImage;
+import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
+import cc.whohow.vfs.tree.FileTree;
+import cc.whohow.vfs.tree.TreeBreadthFirstIterator;
+import cc.whohow.vfs.tree.TreePostOrderIterator;
+import cc.whohow.vfs.tree.TreePreOrderIterator;
 import org.junit.Test;
 
 import java.io.File;
@@ -25,5 +27,11 @@ public class TestTree {
     public void testBreadthFirst() {
         new FileTree(new File("."), TreeBreadthFirstIterator::new)
                 .forEach(System.out::println);
+    }
+
+    @Test
+    public void testAssign() {
+        System.out.println(Object.class.isAssignableFrom(String.class));
+        System.out.println(ProcessImage.class.isAssignableFrom(AliyunOSSProcessImage.class));
     }
 }

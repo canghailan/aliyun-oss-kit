@@ -4,10 +4,16 @@ import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.AliyunOSSContext;
 import cc.whohow.aliyun.oss.AliyunOSSOutputStream;
 import cc.whohow.aliyun.oss.AliyunOSSUri;
+import cc.whohow.vfs.synchronize.FileSynchronizer;
 import com.aliyun.oss.common.utils.IOUtils;
 import com.aliyun.oss.model.OSSObject;
 import com.aliyun.oss.model.ObjectMetadata;
 import com.aliyuncs.profile.DefaultProfile;
+import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.VFS;
+import org.apache.commons.vfs2.provider.local.DefaultLocalFileProvider;
+import org.apache.commons.vfs2.provider.local.LocalFile;
+import org.apache.commons.vfs2.provider.local.LocalFileSystem;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -37,7 +43,8 @@ public class TestAliyunOSS {
             secretAccessKey = properties.getProperty("secretAccessKey");
         }
 
-        AliyunOSS.configure(new AliyunOSSUri(accessKeyId, secretAccessKey, bucketName, endpoint, null));
+        AliyunOSS.configure(accessKeyId, secretAccessKey);
+        AliyunOSS.setExecutor(Executors.newScheduledThreadPool(8));
     }
 
     @AfterClass
@@ -96,7 +103,7 @@ public class TestAliyunOSS {
                 long timestamp = System.currentTimeMillis();
                 System.out.println(Thread.currentThread().getId());
                 try {
-                    AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/url/random" + Thread.currentThread().getId() + ".mp4")
+                    AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/url/random" + Thread.currentThread().getId() + ".jpg")
                             .putObject(new URL("https://picsum.photos/200/300/?random"));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -175,7 +182,7 @@ public class TestAliyunOSS {
 
     @Test
     public void testGetObjectMetadata() throws Exception {
-        System.out.println(AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/file/pom.xml").getObjectMetadata());
+        System.out.println(AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/file/pom.xml").getObjectMetadata().getRawMetadata());
     }
 
     @Test
@@ -209,7 +216,7 @@ public class TestAliyunOSS {
     @Test
     public void testDeleteObject() throws Exception {
         AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/file/").listObjectSummariesRecursively().forEachRemaining(o -> {
-            if (o.getKey().endsWith(".DS_Store")) {
+            if (o.getKey().endsWith(".xml")) {
                 System.out.println(o.getKey());
                 AliyunOSS.getAliyunOSSObject(new AliyunOSSUri(
                         null, null, o.getBucketName(), null, o.getKey())).deleteObject();
@@ -257,22 +264,4 @@ public class TestAliyunOSS {
         System.out.println(AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/upload/target/")
                 .downloadFileRecursively(new File("temp").getAbsolutePath()));
     }
-//
-//    @Test
-//    public void testSyncFromFile() throws Throwable {
-//        new DiffFormatter().print(AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/sync/src/")
-//                .syncFromFile(new File("src")));
-//    }
-//
-//    @Test
-//    public void testSyncToFile() throws Throwable {
-//        new DiffFormatter().print(AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/sync/src/")
-//                .syncToFile(new File("temp")));
-//    }
-//
-//    @Test
-//    public void testSyncFromObject() throws Throwable {
-//        new DiffFormatter().print(AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/sync2/src/")
-//                .syncFromObject(AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/sync/src/")));
-//    }
 }

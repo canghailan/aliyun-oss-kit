@@ -1,9 +1,9 @@
 package cc.whohow.aliyun.oss.vfs;
 
 import cc.whohow.aliyun.oss.AliyunOSSUri;
-import cc.whohow.aliyun.oss.path.NameIterator;
-import cc.whohow.aliyun.oss.path.PathBuilder;
-import cc.whohow.aliyun.oss.path.PathParser;
+import cc.whohow.vfs.path.NameIterator;
+import cc.whohow.vfs.path.PathBuilder;
+import cc.whohow.vfs.path.PathParser;
 import org.apache.commons.vfs2.FileName;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileType;

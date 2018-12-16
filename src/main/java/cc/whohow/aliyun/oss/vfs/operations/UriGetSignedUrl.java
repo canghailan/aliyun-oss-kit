@@ -1,6 +1,7 @@
-package cc.whohow.aliyun.oss.vfs;
+package cc.whohow.aliyun.oss.vfs.operations;
 
-import cc.whohow.aliyun.oss.vfs.operations.GetSignedUrl;
+import cc.whohow.vfs.FileObjectFns;
+import cc.whohow.vfs.provider.uri.UriFileObject;
 import org.apache.commons.vfs2.FileSystemException;
 
 import java.util.Date;
@@ -19,7 +20,7 @@ public class UriGetSignedUrl implements GetSignedUrl {
 
     @Override
     public String get() {
-        return fileObject.getURL().toString();
+        return FileObjectFns.getURL(fileObject).toString();
     }
 
     @Override

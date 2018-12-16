@@ -7,7 +7,7 @@ import org.apache.commons.vfs2.FileSystem;
 public class AliyunOSSObjectSummaryFileObject extends AliyunOSSFileObject {
     protected final OSSObjectSummary ossObjectSummary;
 
-    public AliyunOSSObjectSummaryFileObject(FileSystem fileSystem, OSSObjectSummary ossObjectSummary) {
+    public AliyunOSSObjectSummaryFileObject(AliyunOSSFileSystem fileSystem, OSSObjectSummary ossObjectSummary) {
         super(fileSystem, new AliyunOSSFileName(ossObjectSummary.getBucketName(), ossObjectSummary.getKey()));
         this.ossObjectSummary = ossObjectSummary;
     }

@@ -4,7 +4,9 @@ import cc.whohow.aliyun.oss.AliyunOSSObjectListingIterator;
 import com.aliyun.oss.model.OSSObjectSummary;
 import com.aliyun.oss.model.ObjectListing;
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemException;
 
+import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -12,19 +14,28 @@ import java.util.Iterator;
  * VFS 文件遍历器
  */
 public class AliyunOSSFileObjectIterator implements Iterator<FileObject> {
-    private AliyunOSSFileObject baseFolder;
-    private AliyunOSSObjectListingIterator iterator;
+    private final AliyunOSSFileObject baseFolder;
+    private final AliyunOSSObjectListingIterator iterator;
+    private final boolean listFile;
+    private final boolean listFolder;
     private Iterator<String> commonPrefixIterator;
     private Iterator<OSSObjectSummary> objectSummaryIterator;
     private AliyunOSSFileObject fileObject;
 
     public AliyunOSSFileObjectIterator(AliyunOSSFileObject baseFolder, boolean recursively) {
-        if (baseFolder.isFile()) {
-            throw new IllegalArgumentException();
-        }
+        this(baseFolder, recursively, true, true);
+    }
+
+    public AliyunOSSFileObjectIterator(
+            AliyunOSSFileObject baseFolder,
+            boolean recursively,
+            boolean listFile,
+            boolean listFolder) {
         this.baseFolder = baseFolder;
         this.iterator = new AliyunOSSObjectListingIterator(
                 baseFolder.getOSS(), baseFolder.getBucketName(), baseFolder.getKey(), recursively ? null : "/");
+        this.listFile = listFile;
+        this.listFolder = listFolder;
         this.commonPrefixIterator = Collections.emptyIterator();
         this.objectSummaryIterator = Collections.emptyIterator();
     }
@@ -45,8 +56,14 @@ public class AliyunOSSFileObjectIterator implements Iterator<FileObject> {
         }
         if (iterator.hasNext()) {
             ObjectListing objectListing = iterator.next();
-            commonPrefixIterator = objectListing.getCommonPrefixes().iterator();
-            objectSummaryIterator = objectListing.getObjectSummaries().iterator();
+            commonPrefixIterator = listFolder ?
+                    objectListing.getCommonPrefixes().iterator():
+                    Collections.emptyIterator();
+            objectSummaryIterator = listFile ?
+                    objectListing.getObjectSummaries().stream()
+                            .filter(o -> !o.getKey().endsWith("/"))
+                            .iterator():
+                    Collections.emptyIterator();
             return hasNext();
         }
         return false;
@@ -59,7 +76,11 @@ public class AliyunOSSFileObjectIterator implements Iterator<FileObject> {
 
     @Override
     public void remove() {
-        fileObject.delete();
+        try {
+            fileObject.deleteAll();
+        } catch (FileSystemException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private AliyunOSSFileObject newFileObject(String commonPrefix) {

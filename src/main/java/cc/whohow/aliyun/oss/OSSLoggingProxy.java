@@ -35,7 +35,7 @@ public class OSSLoggingProxy implements OSS {
             Matcher matcher = PLACEHOLDER.matcher(format);
             for (Object arg : args) {
                 if (matcher.find()) {
-                    matcher.appendReplacement(buffer, Objects.toString(arg));
+                    matcher.appendReplacement(buffer, Matcher.quoteReplacement(Objects.toString(arg)));
                 } else {
                     break;
                 }

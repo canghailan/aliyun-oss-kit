@@ -1,19 +1,18 @@
 package cc.whohow.aliyun.oss;
 
+import com.aliyun.oss.model.Bucket;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-public class AliyunOSSCname {
+public class AliyunOSSUrlFactory {
+    private final AliyunOSSContext context;
     private final NavigableMap<String, URI> cnames = new ConcurrentSkipListMap<>(Comparator.reverseOrder());
 
-    /**
-     * 配置Cname
-     */
-    public void configureCname(AliyunOSSUri uri, String cname) {
-        configureCname(uri, URI.create(cname));
+    public AliyunOSSUrlFactory(AliyunOSSContext context) {
+        this.context = context;
     }
 
     /**
@@ -72,5 +71,51 @@ public class AliyunOSSCname {
             }
         }
         return null;
+    }
+
+    public String getExtranetUrl(AliyunOSSUri uri) {
+        Bucket bucket = context.getBucket(uri.getBucketName());
+        if (bucket == null) {
+            throw new IllegalStateException();
+        }
+        return "https://" + uri.getBucketName() + "." + bucket.getExtranetEndpoint() + "/" + uri.getKey();
+    }
+
+    public String getIntranetUrl(AliyunOSSUri uri) {
+        Bucket bucket = context.getBucket(uri.getBucketName());
+        if (bucket == null) {
+            throw new IllegalStateException();
+        }
+        return "https://" + uri.getBucketName() + "." + bucket.getIntranetEndpoint() + "/" + uri.getKey();
+    }
+
+    public String getUrl(AliyunOSSUri uri) {
+        String cnameUrl = getCnameUrl(uri);
+        if (cnameUrl != null) {
+            return cnameUrl;
+        }
+        return getExtranetUrl(uri);
+    }
+
+    public Collection<String> getUrls(AliyunOSSUri uri) {
+        Set<String> urls = new HashSet<>(8);
+        String intranetUrl = AliyunOSS.getIntranetUrl(uri);
+        String extranetUrl = AliyunOSS.getExtranetUrl(uri);
+        String cnameUrl = AliyunOSS.getCnameUrl(uri);
+        urls.add(intranetUrl);
+        urls.add(http(intranetUrl));
+        urls.add(extranetUrl);
+        urls.add(http(extranetUrl));
+        urls.add(cnameUrl);
+        urls.add(http(cnameUrl));
+        urls.remove(null);
+        return urls;
+    }
+
+    private static String http(String https) {
+        if (https == null) {
+            return null;
+        }
+        return https.replaceFirst("^https://", "http://");
     }
 }

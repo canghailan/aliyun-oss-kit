@@ -1,12 +1,14 @@
 package cc.whohow.aliyun.oss;
 
-import cc.whohow.aliyun.oss.net.Ping;
 import com.aliyuncs.exceptions.ClientException;
 import com.aliyuncs.regions.Endpoint;
 import com.aliyuncs.regions.InternalEndpointsParser;
 import com.aliyuncs.regions.ProductDomain;
 
+import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
@@ -17,11 +19,11 @@ import java.util.stream.Collectors;
  * <a href="https://www.alibabacloud.com/help/zh/doc-detail/31837.htm">OSS开通Region和Endpoint对照表</a>
  */
 public class AliyunOSSEndpointsProvider {
-    protected static final String DEFAULT_ENDPOINT = "oss.aliyuncs.com";
-    protected static final String DEFAULT_INTERNAL_ENDPOINT = "oss-internal.aliyuncs.com";
-    protected static final Pattern ENDPOINT = Pattern.compile("^(?<sub>.+)\\.aliyuncs\\.com$");
-    protected static final List<String> ENDPOINTS = loadEndpoints();
-    protected static volatile CompletableFuture<Long> PING = CompletableFuture.supplyAsync(() -> Ping.ping(DEFAULT_INTERNAL_ENDPOINT));
+    private static final String DEFAULT_ENDPOINT = "oss.aliyuncs.com";
+    private static final String DEFAULT_INTERNAL_ENDPOINT = "oss-internal.aliyuncs.com";
+    private static final Pattern ENDPOINT = Pattern.compile("^(?<sub>.+)\\.aliyuncs\\.com$");
+    private static final List<String> ENDPOINTS = loadEndpoints();
+    private static volatile CompletableFuture<Long> PING = CompletableFuture.supplyAsync(() -> ping(DEFAULT_INTERNAL_ENDPOINT));
 
     private static List<String> loadEndpoints() {
         try {
@@ -73,5 +75,19 @@ public class AliyunOSSEndpointsProvider {
             return matcher.group("sub");
         }
         throw new IllegalArgumentException(endpoint);
+    }
+
+    private static long ping(String address) {
+        return ping(address, 1000);
+    }
+
+    private static long ping(String address, int timeout) {
+        long timestamp = System.currentTimeMillis();
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(address, 80), timeout);
+            return System.currentTimeMillis() - timestamp;
+        } catch (IOException ignore) {
+            return -1L;
+        }
     }
 }

@@ -1,7 +1,7 @@
 package cc.whohow.aliyun.oss;
 
-import cc.whohow.aliyun.oss.io.*;
-import cc.whohow.aliyun.oss.vfs.StreamFileObjectAdapter;
+import cc.whohow.vfs.io.*;
+import cc.whohow.vfs.provider.stream.StreamFileObject;
 import org.apache.commons.vfs2.*;
 import org.apache.commons.vfs2.operations.FileOperation;
 
@@ -21,8 +21,9 @@ import java.util.stream.StreamSupport;
 /**
  * FileObjects 工具
  *
- * @see java.nio.file.Files
+ * @see cc.whohow.vfs.FluentFileObject
  */
+@Deprecated
 public class FileObjects {
     /**
      * 获取文件对象
@@ -453,7 +454,7 @@ public class FileObjects {
      * 拷贝流到文件
      */
     public static void copy(InputStream source, FileObject target) {
-        copy(new StreamFileObjectAdapter(source), target);
+        copy(new StreamFileObject(source), target);
     }
 
     /**

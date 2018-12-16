@@ -1,11 +1,12 @@
-package cc.whohow.aliyun.oss.vfs;
+package cc.whohow.aliyun.oss.vfs.operations;
 
 import cc.whohow.aliyun.oss.AliyunOSS;
+import cc.whohow.aliyun.oss.vfs.AliyunOSSFileObject;
 import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 
-class AliyunOSSProcessImage implements ProcessImage {
+public class AliyunOSSProcessImage implements ProcessImage {
     private AliyunOSSFileObject originFileObject;
     private FileObject processedFileObject;
     private String parameters = "";

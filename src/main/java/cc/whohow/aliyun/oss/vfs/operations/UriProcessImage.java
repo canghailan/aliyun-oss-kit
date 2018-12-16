@@ -1,6 +1,6 @@
-package cc.whohow.aliyun.oss.vfs;
+package cc.whohow.aliyun.oss.vfs.operations;
 
-import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
+import cc.whohow.vfs.provider.uri.UriFileObject;
 import org.apache.commons.vfs2.FileObject;
 
 public class UriProcessImage implements ProcessImage {

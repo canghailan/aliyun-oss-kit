@@ -10,8 +10,8 @@ import java.util.Iterator;
  * OSS原始对象遍历器
  */
 public class AliyunOSSObjectListingIterator implements Iterator<ObjectListing> {
-    private OSS oss;
-    private ListObjectsRequest listObjectsRequest;
+    private final OSS oss;
+    private final ListObjectsRequest listObjectsRequest;
     private ObjectListing objectListing;
 
     public AliyunOSSObjectListingIterator(OSS oss, String bucketName, String prefix) {
