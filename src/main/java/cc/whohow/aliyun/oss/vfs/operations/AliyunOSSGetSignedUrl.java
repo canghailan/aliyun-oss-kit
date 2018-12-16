@@ -2,6 +2,7 @@ package cc.whohow.aliyun.oss.vfs.operations;
 
 import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.vfs.AliyunOSSFileObject;
+import cc.whohow.vfs.operations.FileOperationFactoryProvider;
 import org.apache.commons.vfs2.FileSystemException;
 
 import java.util.Date;
@@ -12,6 +13,10 @@ public class AliyunOSSGetSignedUrl implements GetSignedUrl {
 
     public AliyunOSSGetSignedUrl(AliyunOSSFileObject fileObject) {
         this.fileObject = fileObject;
+    }
+
+    public static FileOperationFactoryProvider<AliyunOSSFileObject, GetSignedUrl> provider() {
+        return new FileOperationFactoryProvider<>(AliyunOSSFileObject.class, GetSignedUrl.class, AliyunOSSGetSignedUrl::new);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package cc.whohow.aliyun.oss.vfs.operations;
 
 import cc.whohow.vfs.FileObjectFns;
+import cc.whohow.vfs.operations.FileOperationFactoryProvider;
 import cc.whohow.vfs.provider.uri.UriFileObject;
 import org.apache.commons.vfs2.FileSystemException;
 
@@ -11,6 +12,10 @@ public class UriGetSignedUrl implements GetSignedUrl {
 
     public UriGetSignedUrl(UriFileObject fileObject) {
         this.fileObject = fileObject;
+    }
+
+    public static FileOperationFactoryProvider<UriFileObject, GetSignedUrl> provider() {
+        return new FileOperationFactoryProvider<>(UriFileObject.class, GetSignedUrl.class, UriGetSignedUrl::new);
     }
 
     @Override

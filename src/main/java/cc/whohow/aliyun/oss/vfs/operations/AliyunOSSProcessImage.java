@@ -2,6 +2,7 @@ package cc.whohow.aliyun.oss.vfs.operations;
 
 import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.vfs.AliyunOSSFileObject;
+import cc.whohow.vfs.operations.FileOperationFactoryProvider;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 
@@ -12,6 +13,10 @@ public class AliyunOSSProcessImage implements ProcessImage {
 
     public AliyunOSSProcessImage(AliyunOSSFileObject originFileObject) {
         this.originFileObject = originFileObject;
+    }
+
+    public static FileOperationFactoryProvider<AliyunOSSFileObject, ProcessImage> provider() {
+        return new FileOperationFactoryProvider<>(AliyunOSSFileObject.class, ProcessImage.class, AliyunOSSProcessImage::new);
     }
 
     @Override

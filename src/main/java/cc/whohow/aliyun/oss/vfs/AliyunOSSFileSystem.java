@@ -6,6 +6,7 @@ import cc.whohow.aliyun.oss.AliyunOSSUri;
 import cc.whohow.aliyun.oss.AliyunOSSUrlFactory;
 import cc.whohow.vfs.provider.uri.UriFileObject;
 import cc.whohow.vfs.watch.FileWatchMonitor;
+import cc.whohow.vfs.watch.FileWatcher;
 import com.aliyun.oss.OSS;
 import org.apache.commons.vfs2.*;
 import org.apache.commons.vfs2.provider.AbstractVfsComponent;
@@ -39,11 +40,13 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
             Capability.GET_TYPE,
             Capability.LIST_CHILDREN,
             Capability.URI));
+    private final FileSystemManager fileSystemManager;
     private final AliyunOSSContext context;
     private final AliyunOSSUrlFactory urlFactory;
     private final ScheduledExecutorService executor;
     private final FileWatchMonitor fileWatchMonitor;
     private final CloseableHttpClient httpClient;
+
     private AliyunOSSFileSystem() {
         this(AliyunOSS.getContext(), AliyunOSS.getUrlFactory(), AliyunOSS.getExecutor());
     }
@@ -63,14 +66,16 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
                                AliyunOSSUrlFactory urlFactory,
                                ScheduledExecutorService executor,
                                CloseableHttpClient httpClient) {
-        this.context = context;
-        this.urlFactory = urlFactory;
-        this.executor = executor;
-        this.fileWatchMonitor = new FileWatchMonitor(executor);
-        this.httpClient = httpClient;
-//        this.schemes = Collections.singletonMap(SCHEME, null);
-//        this.capabilities = CAPABILITIES;
-//        this.providerCapabilities = Collections.singletonMap(SCHEME, CAPABILITIES);
+        try {
+            this.fileSystemManager = VFS.getManager();
+            this.context = context;
+            this.urlFactory = urlFactory;
+            this.executor = executor;
+            this.fileWatchMonitor = new FileWatchMonitor(executor);
+            this.httpClient = httpClient;
+        } catch (FileSystemException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     public static AliyunOSSFileSystem getInstance() {
@@ -157,7 +162,7 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
 
     @Override
     public synchronized void addListener(FileObject file, FileListener listener) {
-        fileWatchMonitor.addListener(file, listener);
+        fileWatchMonitor.addListener(new FileWatcher(file, new AliyunOSSFileVersionProvider()), listener);
     }
 
     @Override
@@ -187,11 +192,7 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
 
     @Override
     public FileSystemManager getFileSystemManager() {
-        try {
-            return VFS.getManager();
-        } catch (FileSystemException e) {
-            throw new UncheckedIOException(e);
-        }
+        return fileSystemManager;
     }
 
     @Override

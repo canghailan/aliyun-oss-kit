@@ -1,5 +1,6 @@
 package cc.whohow.aliyun.oss.vfs.operations;
 
+import cc.whohow.vfs.operations.FileOperationFactoryProvider;
 import cc.whohow.vfs.provider.uri.UriFileObject;
 import org.apache.commons.vfs2.FileObject;
 
@@ -8,6 +9,10 @@ public class UriProcessImage implements ProcessImage {
 
     public UriProcessImage(UriFileObject originFileObject) {
         this.originFileObject = originFileObject;
+    }
+
+    public static FileOperationFactoryProvider<UriFileObject, ProcessImage> provider() {
+        return new FileOperationFactoryProvider<>(UriFileObject.class, ProcessImage.class, UriProcessImage::new);
     }
 
     @Override

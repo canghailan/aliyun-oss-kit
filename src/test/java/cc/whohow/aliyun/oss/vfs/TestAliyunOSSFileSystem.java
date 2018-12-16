@@ -1,23 +1,17 @@
 package cc.whohow.aliyun.oss.vfs;
 
 import cc.whohow.aliyun.oss.AliyunOSS;
-import cc.whohow.aliyun.oss.AliyunOSSUri;
 import cc.whohow.aliyun.oss.FileObjects;
 import cc.whohow.aliyun.oss.vfs.copy.FileObjectCopier;
-import cc.whohow.aliyun.oss.vfs.operations.AliyunOSSFileOperationsProvider;
-import cc.whohow.aliyun.oss.vfs.operations.CompareFileContent;
-import cc.whohow.aliyun.oss.vfs.operations.GetSignedUrl;
-import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
+import cc.whohow.aliyun.oss.vfs.operations.*;
 import cc.whohow.vfs.FluentFileObject;
 import cc.whohow.vfs.RootFileSystem;
-import cc.whohow.vfs.synchronize.FileSynchronizer;
 import org.apache.commons.vfs2.*;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.time.Duration;
@@ -44,12 +38,17 @@ public class TestAliyunOSSFileSystem {
             secretAccessKey = properties.getProperty("secretAccessKey");
         }
 
+        VFS.setManager(new RootFileSystem());
+        AliyunOSSCompareFileContent.provider().register("oss");
+        AliyunOSSGetSignedUrl.provider().register("oss");
+        AliyunOSSProcessImage.provider().register("oss");
+        UriGetSignedUrl.provider().register("http", "https");
+        UriProcessImage.provider().register("http", "https");
+
         AliyunOSS.configure(accessKeyId, secretAccessKey);
         AliyunOSS.configureCname("oss://yt-temp/test-fs/copy/", "https://temp.yitong.com/test-fs/copy/");
         AliyunOSS.setExecutor(Executors.newScheduledThreadPool(8));
         vfs = AliyunOSSFileSystem.getInstance();
-        VFS.setManager(new RootFileSystem());
-        VFS.getManager().addOperationProvider("oss", new AliyunOSSFileOperationsProvider());
     }
 
     @AfterClass
@@ -220,6 +219,8 @@ public class TestAliyunOSSFileSystem {
         System.out.println(file.getName().getParent());
         System.out.println(file.getName().getType());
         System.out.println(file.getPublicURIString());
+        System.out.println(new FluentFileObject(file)
+                .apply(ProcessImage.class, (f, op) -> op.setParameters("@compress.jpg").get()));
         vfs.resolveFile("oss://yt-temp/test-kit/a.jpg")
                 .copyFrom(FileObjects.newOperation(file, ProcessImage.class).setParameters("@compress.jpg").get(), Selectors.SELECT_ALL);
     }
@@ -273,7 +274,7 @@ public class TestAliyunOSSFileSystem {
                 new AliyunOSSFileName("yt-temp", ""),
                 new AliyunOSSFileName("oss://yt-temp/a/b/c/d.jpg").getRoot());
         Assert.assertEquals(
-                new AliyunOSSFileName("yt-temp", "a/b/c"),
+                new AliyunOSSFileName("yt-temp", "a/b/c/"),
                 new AliyunOSSFileName("oss://yt-temp/a/b/c/d.jpg").getParent());
         Assert.assertNull(new AliyunOSSFileName("oss://yt-temp/").getParent());
         Assert.assertEquals(

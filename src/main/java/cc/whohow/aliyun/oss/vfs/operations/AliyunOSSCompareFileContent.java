@@ -2,6 +2,7 @@ package cc.whohow.aliyun.oss.vfs.operations;
 
 import cc.whohow.aliyun.oss.vfs.AliyunOSSFileObject;
 import cc.whohow.aliyun.oss.vfs.AliyunOSSFileVersionProvider;
+import cc.whohow.vfs.operations.FileOperationFactoryProvider;
 import cc.whohow.vfs.version.FileVersion;
 import org.apache.commons.vfs2.FileObject;
 
@@ -12,6 +13,10 @@ public class AliyunOSSCompareFileContent implements CompareFileContent {
 
     public AliyunOSSCompareFileContent(AliyunOSSFileObject fileObject) {
         this.fileObject = fileObject;
+    }
+
+    public static FileOperationFactoryProvider<AliyunOSSFileObject, CompareFileContent> provider() {
+        return new FileOperationFactoryProvider<>(AliyunOSSFileObject.class, CompareFileContent.class, AliyunOSSCompareFileContent::new);
     }
 
     @Override
