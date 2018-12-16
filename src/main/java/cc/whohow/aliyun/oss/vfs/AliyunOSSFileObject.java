@@ -4,10 +4,8 @@ import cc.whohow.aliyun.oss.AliyunOSSObject;
 import cc.whohow.vfs.*;
 import cc.whohow.vfs.operations.ProviderFileOperations;
 import cc.whohow.vfs.provider.uri.UriFileObject;
-import cc.whohow.vfs.selector.FileSelectorFilter;
 import cc.whohow.vfs.selector.FileSelectors;
 import cc.whohow.vfs.tree.FileObjectFindTree;
-import cc.whohow.vfs.tree.FileObjectTree;
 import cc.whohow.vfs.tree.TreeBreadthFirstIterator;
 import cc.whohow.vfs.tree.TreePostOrderIterator;
 import com.aliyun.oss.model.ObjectMetadata;
@@ -24,7 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
@@ -36,7 +33,7 @@ import java.util.stream.StreamSupport;
  * 阿里云文件对象
  */
 public class AliyunOSSFileObject extends AliyunOSSObject
-        implements DataFileObject, ListableFileObject,SimplifyFileObject, StatelessFileObject {
+        implements DataFileObject, ListableFileObject, SimplifyFileObject, StatelessFileObject {
     protected final AliyunOSSFileSystem fileSystem;
     protected final AliyunOSSFileName name;
 
@@ -253,11 +250,11 @@ public class AliyunOSSFileObject extends AliyunOSSObject
             AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, false);
             return Stream.concat(
                     Stream.of(this),
-                    StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0),false));
+                    StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false));
         }
         if (selector == Selectors.SELECT_CHILDREN) {
             AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, false);
-            return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0),false);
+            return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false);
         }
         if (depthwise) {
             // 深度优先
@@ -267,7 +264,7 @@ public class AliyunOSSFileObject extends AliyunOSSObject
         // 仅文件，原生查询优化
         if (selector == Selectors.SELECT_FILES) {
             AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, true, true, false);
-            return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0),false);
+            return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false);
         }
         // 默认广度优先，程序性能更好
         return new FileObjectFindTree(this, selector, TreeBreadthFirstIterator::new).stream()

@@ -3,8 +3,11 @@ package cc.whohow.aliyun.oss;
 import com.aliyun.oss.OSS;
 
 import java.net.URI;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.Date;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 阿里云 OSS 全局配置及缓存

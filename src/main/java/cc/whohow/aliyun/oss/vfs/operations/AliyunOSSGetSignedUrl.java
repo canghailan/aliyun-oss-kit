@@ -2,7 +2,6 @@ package cc.whohow.aliyun.oss.vfs.operations;
 
 import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.vfs.AliyunOSSFileObject;
-import cc.whohow.aliyun.oss.vfs.operations.GetSignedUrl;
 import org.apache.commons.vfs2.FileSystemException;
 
 import java.util.Date;

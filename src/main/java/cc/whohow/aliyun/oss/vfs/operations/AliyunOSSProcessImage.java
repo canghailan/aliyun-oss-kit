@@ -2,7 +2,6 @@ package cc.whohow.aliyun.oss.vfs.operations;
 
 import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.vfs.AliyunOSSFileObject;
-import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 

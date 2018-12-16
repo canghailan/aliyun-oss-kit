@@ -1,7 +1,6 @@
 package cc.whohow.aliyun.oss.vfs;
 
 import com.aliyun.oss.model.OSSObjectSummary;
-import org.apache.commons.vfs2.FileSystem;
 
 
 public class AliyunOSSObjectSummaryFileObject extends AliyunOSSFileObject {

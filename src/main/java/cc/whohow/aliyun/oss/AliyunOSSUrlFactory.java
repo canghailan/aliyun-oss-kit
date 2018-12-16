@@ -15,6 +15,13 @@ public class AliyunOSSUrlFactory {
         this.context = context;
     }
 
+    private static String http(String https) {
+        if (https == null) {
+            return null;
+        }
+        return https.replaceFirst("^https://", "http://");
+    }
+
     /**
      * 配置Cname
      */
@@ -110,12 +117,5 @@ public class AliyunOSSUrlFactory {
         urls.add(http(cnameUrl));
         urls.remove(null);
         return urls;
-    }
-
-    private static String http(String https) {
-        if (https == null) {
-            return null;
-        }
-        return https.replaceFirst("^https://", "http://");
     }
 }

@@ -11,6 +11,7 @@ import java.util.function.Function;
 
 /**
  * 文件拷贝工具
+ *
  * @see cc.whohow.vfs.FluentFileObject
  */
 @Deprecated

@@ -4,7 +4,10 @@ import cc.whohow.aliyun.oss.AliyunOSSObjectMetadata;
 import cc.whohow.vfs.SimplifyFileContent;
 import cc.whohow.vfs.StatelessFileContent;
 import com.aliyun.oss.model.ObjectMetadata;
-import org.apache.commons.vfs2.*;
+import org.apache.commons.vfs2.FileContent;
+import org.apache.commons.vfs2.FileContentInfo;
+import org.apache.commons.vfs2.FileSystemException;
+import org.apache.commons.vfs2.RandomAccessContent;
 import org.apache.commons.vfs2.impl.DefaultFileContentInfo;
 import org.apache.commons.vfs2.util.RandomAccessMode;
 

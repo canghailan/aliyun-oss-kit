@@ -25,10 +25,14 @@ public class AliyunOSSObjectSummaryFileContent extends AliyunOSSFileContent {
     @Override
     public Object getAttribute(String attrName) throws FileSystemException {
         switch (attrName) {
-            case OSSHeaders.ETAG: return ossObjectSummary.getETag();
-            case OSSHeaders.CONTENT_LENGTH: return ossObjectSummary.getSize();
-            case OSSHeaders.LAST_MODIFIED: return ossObjectSummary.getLastModified();
-            default: return super.getAttribute(attrName);
+            case OSSHeaders.ETAG:
+                return ossObjectSummary.getETag();
+            case OSSHeaders.CONTENT_LENGTH:
+                return ossObjectSummary.getSize();
+            case OSSHeaders.LAST_MODIFIED:
+                return ossObjectSummary.getLastModified();
+            default:
+                return super.getAttribute(attrName);
         }
     }
 }

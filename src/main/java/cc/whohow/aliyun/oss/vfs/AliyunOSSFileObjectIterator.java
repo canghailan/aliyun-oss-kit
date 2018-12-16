@@ -57,12 +57,12 @@ public class AliyunOSSFileObjectIterator implements Iterator<FileObject> {
         if (iterator.hasNext()) {
             ObjectListing objectListing = iterator.next();
             commonPrefixIterator = listFolder ?
-                    objectListing.getCommonPrefixes().iterator():
+                    objectListing.getCommonPrefixes().iterator() :
                     Collections.emptyIterator();
             objectSummaryIterator = listFile ?
                     objectListing.getObjectSummaries().stream()
                             .filter(o -> !o.getKey().endsWith("/"))
-                            .iterator():
+                            .iterator() :
                     Collections.emptyIterator();
             return hasNext();
         }

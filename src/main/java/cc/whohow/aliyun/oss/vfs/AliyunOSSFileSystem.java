@@ -1,9 +1,9 @@
 package cc.whohow.aliyun.oss.vfs;
 
 import cc.whohow.aliyun.oss.AliyunOSS;
-import cc.whohow.aliyun.oss.AliyunOSSUrlFactory;
 import cc.whohow.aliyun.oss.AliyunOSSContext;
 import cc.whohow.aliyun.oss.AliyunOSSUri;
+import cc.whohow.aliyun.oss.AliyunOSSUrlFactory;
 import cc.whohow.vfs.provider.uri.UriFileObject;
 import cc.whohow.vfs.watch.FileWatchMonitor;
 import com.aliyun.oss.OSS;
@@ -17,13 +17,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSystem {
-    private static class SingletonHolder {
-        static final AliyunOSSFileSystem INSTANCE = new AliyunOSSFileSystem();
-    }
     private static final String SCHEME = "oss";
     private static final Set<Capability> CAPABILITIES = Collections.unmodifiableSet(EnumSet.of(
             Capability.READ_CONTENT,
@@ -39,17 +39,11 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
             Capability.GET_TYPE,
             Capability.LIST_CHILDREN,
             Capability.URI));
-
     private final AliyunOSSContext context;
     private final AliyunOSSUrlFactory urlFactory;
     private final ScheduledExecutorService executor;
     private final FileWatchMonitor fileWatchMonitor;
     private final CloseableHttpClient httpClient;
-
-    public static AliyunOSSFileSystem getInstance() {
-        return SingletonHolder.INSTANCE;
-    }
-
     private AliyunOSSFileSystem() {
         this(AliyunOSS.getContext(), AliyunOSS.getUrlFactory(), AliyunOSS.getExecutor());
     }
@@ -59,10 +53,10 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
                                ScheduledExecutorService executor) {
         this(context, urlFactory, executor,
                 HttpClientBuilder.create()
-                .setMaxConnPerRoute(1024)
-                .setMaxConnTotal(1024)
-                .setRedirectStrategy(LaxRedirectStrategy.INSTANCE)
-                .build());
+                        .setMaxConnPerRoute(1024)
+                        .setMaxConnTotal(1024)
+                        .setRedirectStrategy(LaxRedirectStrategy.INSTANCE)
+                        .build());
     }
 
     public AliyunOSSFileSystem(AliyunOSSContext context,
@@ -77,6 +71,10 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
 //        this.schemes = Collections.singletonMap(SCHEME, null);
 //        this.capabilities = CAPABILITIES;
 //        this.providerCapabilities = Collections.singletonMap(SCHEME, CAPABILITIES);
+    }
+
+    public static AliyunOSSFileSystem getInstance() {
+        return SingletonHolder.INSTANCE;
     }
 
     public ScheduledExecutorService getExecutor() {
@@ -169,12 +167,12 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
 
     @Override
     public void addJunction(String junctionPoint, FileObject targetFile) throws FileSystemException {
-        throw  new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void removeJunction(String junctionPoint) throws FileSystemException {
-        throw  new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -209,5 +207,9 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
         } finally {
             super.close();
         }
+    }
+
+    private static class SingletonHolder {
+        static final AliyunOSSFileSystem INSTANCE = new AliyunOSSFileSystem();
     }
 }
