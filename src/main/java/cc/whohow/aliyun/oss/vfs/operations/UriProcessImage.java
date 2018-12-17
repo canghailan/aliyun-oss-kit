@@ -11,10 +11,6 @@ public class UriProcessImage implements ProcessImage {
         this.originFileObject = originFileObject;
     }
 
-    public static FileOperationFactoryProvider<UriFileObject, ProcessImage> provider() {
-        return new FileOperationFactoryProvider<>(UriFileObject.class, ProcessImage.class, UriProcessImage::new);
-    }
-
     @Override
     public ProcessImage setParameters(String parameters) {
         return this;
@@ -33,5 +29,11 @@ public class UriProcessImage implements ProcessImage {
     @Override
     public void process() {
         // do nothing
+    }
+
+    public static class Provider extends FileOperationFactoryProvider<UriFileObject, ProcessImage> {
+        public Provider() {
+            super(UriFileObject.class, ProcessImage.class, UriProcessImage::new);
+        }
     }
 }

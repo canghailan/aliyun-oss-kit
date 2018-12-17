@@ -39,11 +39,11 @@ public class TestAliyunOSSFileSystem {
         }
 
         VFS.setManager(new RootFileSystem());
-        AliyunOSSCompareFileContent.provider().register("oss");
-        AliyunOSSGetSignedUrl.provider().register("oss");
-        AliyunOSSProcessImage.provider().register("oss");
-        UriGetSignedUrl.provider().register("http", "https");
-        UriProcessImage.provider().register("http", "https");
+        new AliyunOSSCompareFileContent.Provider().register("oss");
+        new AliyunOSSGetSignedUrl.Provider().register("oss");
+        new AliyunOSSProcessImage.Provider().register("oss");
+        new UriGetSignedUrl.Provider().register("http", "https");
+        new UriProcessImage.Provider().register("http", "https");
 
         AliyunOSS.configure(accessKeyId, secretAccessKey);
         AliyunOSS.configureCname("oss://yt-temp/test-fs/copy/", "https://temp.yitong.com/test-fs/copy/");

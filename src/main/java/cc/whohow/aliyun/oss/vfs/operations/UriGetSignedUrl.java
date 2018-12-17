@@ -14,10 +14,6 @@ public class UriGetSignedUrl implements GetSignedUrl {
         this.fileObject = fileObject;
     }
 
-    public static FileOperationFactoryProvider<UriFileObject, GetSignedUrl> provider() {
-        return new FileOperationFactoryProvider<>(UriFileObject.class, GetSignedUrl.class, UriGetSignedUrl::new);
-    }
-
     @Override
     public GetSignedUrl setExpiration(Date expiration) {
         return this;
@@ -31,5 +27,11 @@ public class UriGetSignedUrl implements GetSignedUrl {
     @Override
     public void process() throws FileSystemException {
 
+    }
+
+    public static class Provider extends FileOperationFactoryProvider<UriFileObject, GetSignedUrl> {
+        public Provider() {
+            super(UriFileObject.class, GetSignedUrl.class, UriGetSignedUrl::new);
+        }
     }
 }

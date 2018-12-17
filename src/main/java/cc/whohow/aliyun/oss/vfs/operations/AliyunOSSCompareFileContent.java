@@ -15,10 +15,6 @@ public class AliyunOSSCompareFileContent implements CompareFileContent {
         this.fileObject = fileObject;
     }
 
-    public static FileOperationFactoryProvider<AliyunOSSFileObject, CompareFileContent> provider() {
-        return new FileOperationFactoryProvider<>(AliyunOSSFileObject.class, CompareFileContent.class, AliyunOSSCompareFileContent::new);
-    }
-
     @Override
     public CompareFileContent setFileObjectForCompare(FileObject fileObject) {
         this.fileObjectForCompare = fileObject;
@@ -47,5 +43,11 @@ public class AliyunOSSCompareFileContent implements CompareFileContent {
 
     @Override
     public void process() {
+    }
+
+    public static class Provider extends FileOperationFactoryProvider<AliyunOSSFileObject, CompareFileContent> {
+        public Provider() {
+            super(AliyunOSSFileObject.class, CompareFileContent.class, AliyunOSSCompareFileContent::new);
+        }
     }
 }

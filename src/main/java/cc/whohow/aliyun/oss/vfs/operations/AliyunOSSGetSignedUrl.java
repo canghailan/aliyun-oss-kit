@@ -15,10 +15,6 @@ public class AliyunOSSGetSignedUrl implements GetSignedUrl {
         this.fileObject = fileObject;
     }
 
-    public static FileOperationFactoryProvider<AliyunOSSFileObject, GetSignedUrl> provider() {
-        return new FileOperationFactoryProvider<>(AliyunOSSFileObject.class, GetSignedUrl.class, AliyunOSSGetSignedUrl::new);
-    }
-
     @Override
     public GetSignedUrl setExpiration(Date expiration) {
         this.expiration = expiration;
@@ -46,5 +42,11 @@ public class AliyunOSSGetSignedUrl implements GetSignedUrl {
     @Override
     public void process() throws FileSystemException {
         get();
+    }
+
+    public static class Provider extends FileOperationFactoryProvider<AliyunOSSFileObject, GetSignedUrl> {
+        public Provider() {
+            super(AliyunOSSFileObject.class, GetSignedUrl.class, AliyunOSSGetSignedUrl::new);
+        }
     }
 }

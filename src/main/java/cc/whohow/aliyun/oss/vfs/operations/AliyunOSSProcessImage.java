@@ -15,10 +15,6 @@ public class AliyunOSSProcessImage implements ProcessImage {
         this.originFileObject = originFileObject;
     }
 
-    public static FileOperationFactoryProvider<AliyunOSSFileObject, ProcessImage> provider() {
-        return new FileOperationFactoryProvider<>(AliyunOSSFileObject.class, ProcessImage.class, AliyunOSSProcessImage::new);
-    }
-
     @Override
     public ProcessImage setParameters(String parameters) {
         this.parameters = parameters;
@@ -39,5 +35,11 @@ public class AliyunOSSProcessImage implements ProcessImage {
     public void process() throws FileSystemException {
         processedFileObject = originFileObject.getFileSystem().getFileSystemManager().resolveFile(
                 AliyunOSS.getExtranetUrl(originFileObject.getName()) + parameters);
+    }
+
+    public static class Provider extends FileOperationFactoryProvider<AliyunOSSFileObject, ProcessImage> {
+        public Provider() {
+            super(AliyunOSSFileObject.class, ProcessImage.class, AliyunOSSProcessImage::new);
+        }
     }
 }
