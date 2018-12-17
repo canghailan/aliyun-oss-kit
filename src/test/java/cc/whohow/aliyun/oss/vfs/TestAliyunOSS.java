@@ -1,9 +1,6 @@
 package cc.whohow.aliyun.oss.vfs;
 
-import cc.whohow.aliyun.oss.AliyunOSS;
-import cc.whohow.aliyun.oss.AliyunOSSContext;
-import cc.whohow.aliyun.oss.AliyunOSSOutputStream;
-import cc.whohow.aliyun.oss.AliyunOSSUri;
+import cc.whohow.aliyun.oss.*;
 import cc.whohow.vfs.synchronize.FileSynchronizer;
 import com.aliyun.oss.common.utils.IOUtils;
 import com.aliyun.oss.model.OSSObject;
@@ -263,5 +260,10 @@ public class TestAliyunOSS {
     public void testDownloadFileRecursively() throws Throwable {
         System.out.println(AliyunOSS.getAliyunOSSObject("oss://yt-temp/test-kit/upload/target/")
                 .downloadFileRecursively(new File("temp").getAbsolutePath()));
+    }
+
+    @Test
+    public void testRawMetadata() throws Throwable {
+        System.out.println(AliyunOSSObjectMetadata.RAW_META_DATA);
     }
 }

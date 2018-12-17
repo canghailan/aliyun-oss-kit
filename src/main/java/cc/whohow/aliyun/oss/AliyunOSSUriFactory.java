@@ -7,11 +7,11 @@ import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-public class AliyunOSSUrlFactory {
+public class AliyunOSSUriFactory {
     private final AliyunOSSContext context;
     private final NavigableMap<String, URI> cnames = new ConcurrentSkipListMap<>(Comparator.reverseOrder());
 
-    public AliyunOSSUrlFactory(AliyunOSSContext context) {
+    public AliyunOSSUriFactory(AliyunOSSContext context) {
         this.context = context;
     }
 
@@ -28,7 +28,7 @@ public class AliyunOSSUrlFactory {
     public void configureCname(AliyunOSSUri uri, URI cname) {
         Objects.requireNonNull(uri.getBucketName());
         Objects.requireNonNull(cname);
-        cnames.put("oss://" + uri.getBucketName() + "/" + uri.getKey(), cname);
+        cnames.put(getShortUri(uri), cname);
     }
 
     public Map<String, URI> getCnames() {
@@ -40,7 +40,7 @@ public class AliyunOSSUrlFactory {
     }
 
     public String getCnameUrl(AliyunOSSUri uri, Date expires) {
-        String key = "oss://" + uri.getBucketName() + "/" + uri.getKey();
+        String key = getShortUri(uri);
         for (Map.Entry<String, URI> e : cnames.tailMap(key).entrySet()) {
             if (key.startsWith(e.getKey())) {
                 URI cname = e.getValue();
@@ -104,18 +104,42 @@ public class AliyunOSSUrlFactory {
         return getExtranetUrl(uri);
     }
 
-    public Collection<String> getUrls(AliyunOSSUri uri) {
-        Set<String> urls = new HashSet<>(8);
-        String intranetUrl = AliyunOSS.getIntranetUrl(uri);
-        String extranetUrl = AliyunOSS.getExtranetUrl(uri);
-        String cnameUrl = AliyunOSS.getCnameUrl(uri);
-        urls.add(intranetUrl);
-        urls.add(http(intranetUrl));
-        urls.add(extranetUrl);
-        urls.add(http(extranetUrl));
-        urls.add(cnameUrl);
-        urls.add(http(cnameUrl));
-        urls.remove(null);
-        return urls;
+    public String getShortUri(AliyunOSSUri uri) {
+        return "oss://" + uri.getBucketName() + "/" + uri.getKey();
+    }
+
+    public String getLongExtranetUri(AliyunOSSUri uri) {
+        Bucket bucket = context.getBucket(uri.getBucketName());
+        if (bucket == null) {
+            throw new IllegalStateException();
+        }
+        return "oss://" + uri.getBucketName() + "." + bucket.getExtranetEndpoint() + "/" + uri.getKey();
+    }
+
+    public String getLongIntranetUri(AliyunOSSUri uri) {
+        Bucket bucket = context.getBucket(uri.getBucketName());
+        if (bucket == null) {
+            throw new IllegalStateException();
+        }
+        return "oss://" + uri.getBucketName() + "." + bucket.getIntranetEndpoint() + "/" + uri.getKey();
+    }
+
+    public Collection<String> getCanonicalUris(AliyunOSSUri uri) {
+        Set<String> names = new HashSet<>(8);
+        String shortUri = getShortUri(uri);
+        String intranetUrl = getIntranetUrl(uri);
+        String extranetUrl = getExtranetUrl(uri);
+        String cnameUrl = getCnameUrl(uri);
+        names.add(shortUri);
+        names.add(getLongExtranetUri(uri));
+        names.add(getLongIntranetUri(uri));
+        names.add(intranetUrl);
+        names.add(http(intranetUrl));
+        names.add(extranetUrl);
+        names.add(http(extranetUrl));
+        names.add(cnameUrl);
+        names.add(http(cnameUrl));
+        names.remove(null);
+        return names;
     }
 }

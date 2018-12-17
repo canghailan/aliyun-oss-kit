@@ -3,13 +3,13 @@ package cc.whohow.aliyun.oss.vfs;
 import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.AliyunOSSContext;
 import cc.whohow.aliyun.oss.AliyunOSSUri;
-import cc.whohow.aliyun.oss.AliyunOSSUrlFactory;
-import cc.whohow.vfs.provider.uri.UriFileObject;
+import cc.whohow.aliyun.oss.AliyunOSSUriFactory;
 import cc.whohow.vfs.watch.FileWatchMonitor;
 import cc.whohow.vfs.watch.FileWatcher;
 import com.aliyun.oss.OSS;
 import org.apache.commons.vfs2.*;
 import org.apache.commons.vfs2.provider.AbstractVfsComponent;
+import org.apache.commons.vfs2.provider.FileProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.LaxRedirectStrategy;
@@ -18,13 +18,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSystem {
+public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileProvider, FileSystem {
     private static final String SCHEME = "oss";
     private static final Set<Capability> CAPABILITIES = Collections.unmodifiableSet(EnumSet.of(
             Capability.READ_CONTENT,
@@ -42,19 +40,17 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
             Capability.URI));
     private final FileSystemManager fileSystemManager;
     private final AliyunOSSContext context;
-    private final AliyunOSSUrlFactory urlFactory;
+    private final AliyunOSSUriFactory uriFactory;
     private final ScheduledExecutorService executor;
     private final FileWatchMonitor fileWatchMonitor;
     private final CloseableHttpClient httpClient;
+    private final Map<String, Object> attributes = new ConcurrentHashMap<>();
 
     private AliyunOSSFileSystem() {
-        this(AliyunOSS.getContext(), AliyunOSS.getUrlFactory(), AliyunOSS.getExecutor());
-    }
-
-    public AliyunOSSFileSystem(AliyunOSSContext context,
-                               AliyunOSSUrlFactory urlFactory,
-                               ScheduledExecutorService executor) {
-        this(context, urlFactory, executor,
+        this(getVFSManager(),
+                AliyunOSS.getContext(),
+                AliyunOSS.getUriFactory(),
+                AliyunOSS.getExecutor(),
                 HttpClientBuilder.create()
                         .setMaxConnPerRoute(1024)
                         .setMaxConnTotal(1024)
@@ -62,24 +58,29 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
                         .build());
     }
 
-    public AliyunOSSFileSystem(AliyunOSSContext context,
-                               AliyunOSSUrlFactory urlFactory,
+    public AliyunOSSFileSystem(FileSystemManager fileSystemManager,
+                               AliyunOSSContext context,
+                               AliyunOSSUriFactory uriFactory,
                                ScheduledExecutorService executor,
                                CloseableHttpClient httpClient) {
-        try {
-            this.fileSystemManager = VFS.getManager();
-            this.context = context;
-            this.urlFactory = urlFactory;
-            this.executor = executor;
-            this.fileWatchMonitor = new FileWatchMonitor(executor);
-            this.httpClient = httpClient;
-        } catch (FileSystemException e) {
-            throw new UncheckedIOException(e);
-        }
+        this.fileSystemManager = fileSystemManager;
+        this.context = context;
+        this.uriFactory = uriFactory;
+        this.executor = executor;
+        this.fileWatchMonitor = new FileWatchMonitor(executor);
+        this.httpClient = httpClient;
     }
 
     public static AliyunOSSFileSystem getInstance() {
         return SingletonHolder.INSTANCE;
+    }
+
+    protected static FileSystemManager getVFSManager() {
+        try {
+            return VFS.getManager();
+        } catch (FileSystemException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     public ScheduledExecutorService getExecutor() {
@@ -95,31 +96,35 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
     }
 
     public String getUrl(AliyunOSSUri uri) {
-        return urlFactory.getUrl(uri);
+        return uriFactory.getUrl(uri);
     }
 
-    public Collection<String> getUrls(AliyunOSSUri uri) {
-        return urlFactory.getUrls(uri);
+    public Collection<String> getCanonicalNames(AliyunOSSUri uri) {
+        return uriFactory.getCanonicalUris(uri);
+    }
+
+    public static String getScheme() {
+        return SCHEME;
     }
 
     @Override
     public FileObject getRoot() throws FileSystemException {
-        return null;
+        throw new FileSystemException("");
     }
 
     @Override
     public FileName getRootName() {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public String getRootURI() {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean hasCapability(Capability capability) {
-        return false;
+        return CAPABILITIES.contains(capability);
     }
 
     @Override
@@ -129,12 +134,12 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
 
     @Override
     public Object getAttribute(String attrName) throws FileSystemException {
-        return null;
+        return attributes.get(attrName);
     }
 
     @Override
     public void setAttribute(String attrName, Object value) throws FileSystemException {
-
+        attributes.put(attrName, value);
     }
 
     @Override
@@ -145,19 +150,10 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
     @Override
     public FileObject resolveFile(String name) throws FileSystemException {
         URI uri = URI.create(name);
-        if ("oss".equals(uri.getScheme())) {
+        if (SCHEME.equals(uri.getScheme())) {
             return new AliyunOSSFileObject(this, new AliyunOSSFileName(uri));
         }
-        if (uri.getQuery() != null || uri.getPath().contains("@")) {
-            return new UriFileObject(name);
-        }
-//        for (Map.Entry<String, FileObject> junction : junctions.tailMap(name).entrySet()) {
-//            if (name.startsWith(junction.getKey())) {
-//                return junction.getValue().resolveFile(
-//                        name.substring(junction.getKey().length()));
-//            }
-//        }
-        return new UriFileObject(name);
+        throw new FileSystemException("");
     }
 
     @Override
@@ -172,17 +168,17 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
 
     @Override
     public void addJunction(String junctionPoint, FileObject targetFile) throws FileSystemException {
-        throw new UnsupportedOperationException();
+        throw new FileSystemException("");
     }
 
     @Override
     public void removeJunction(String junctionPoint) throws FileSystemException {
-        throw new UnsupportedOperationException();
+        throw new FileSystemException("");
     }
 
     @Override
     public File replicateFile(FileObject file, FileSelector selector) throws FileSystemException {
-        return null;
+        throw new FileSystemException("");
     }
 
     @Override
@@ -197,7 +193,7 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
 
     @Override
     public double getLastModTimeAccuracy() {
-        return 0;
+        return 1000;
     }
 
     @Override
@@ -208,6 +204,31 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FileSys
         } finally {
             super.close();
         }
+    }
+
+    @Override
+    public FileObject findFile(FileObject baseFile, String uri, FileSystemOptions fileSystemOptions) throws FileSystemException {
+        return resolveFile(uri);
+    }
+
+    @Override
+    public FileObject createFileSystem(String scheme, FileObject file, FileSystemOptions fileSystemOptions) throws FileSystemException {
+        throw new FileSystemException("");
+    }
+
+    @Override
+    public FileSystemConfigBuilder getConfigBuilder() {
+        return null;
+    }
+
+    @Override
+    public Collection<Capability> getCapabilities() {
+        return CAPABILITIES;
+    }
+
+    @Override
+    public FileName parseUri(FileName root, String uri) throws FileSystemException {
+        return resolveFile(root).resolveFile(uri).getName();
     }
 
     private static class SingletonHolder {

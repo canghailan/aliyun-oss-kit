@@ -60,7 +60,18 @@ public class AliyunOSSFileContent implements SimplifyFileContent, StatelessFileC
     }
 
     @Override
+    public boolean hasAttribute(String attrName) {
+        return getAttributes().containsKey(AliyunOSSObjectMetadata.normalizeName(attrName));
+    }
+
+    @Override
+    public Object getAttribute(String attrName) throws FileSystemException {
+        return getAttributes().get(AliyunOSSObjectMetadata.normalizeName(attrName));
+    }
+
+    @Override
     public void setAttribute(String attrName, Object value) {
+        attrName = AliyunOSSObjectMetadata.normalizeName(attrName);
         ObjectMetadata objectMetadata = file.getObjectMetadata();
         if (AliyunOSSObjectMetadata.RAW_META_DATA.contains(attrName)) {
             objectMetadata.setHeader(attrName, value);
@@ -72,6 +83,7 @@ public class AliyunOSSFileContent implements SimplifyFileContent, StatelessFileC
 
     @Override
     public void removeAttribute(String attrName) {
+        attrName = AliyunOSSObjectMetadata.normalizeName(attrName);
         ObjectMetadata objectMetadata = file.getObjectMetadata();
         if (AliyunOSSObjectMetadata.RAW_META_DATA.contains(attrName)) {
             objectMetadata.setHeader(attrName, null);
@@ -108,8 +120,8 @@ public class AliyunOSSFileContent implements SimplifyFileContent, StatelessFileC
     }
 
     private long write(AliyunOSSFileContent fileContent) throws IOException {
-        AliyunOSSFileObject f = fileContent.getFile();
-        f.copyFile(getFile());
+        AliyunOSSFileObject file = fileContent.getFile();
+        file.copyFile(getFile());
         return getSize();
     }
 

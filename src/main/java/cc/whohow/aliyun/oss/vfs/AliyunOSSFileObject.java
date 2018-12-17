@@ -3,6 +3,7 @@ package cc.whohow.aliyun.oss.vfs;
 import cc.whohow.aliyun.oss.AliyunOSSObject;
 import cc.whohow.vfs.*;
 import cc.whohow.vfs.operations.ProviderFileOperations;
+import cc.whohow.vfs.path.PathParser;
 import cc.whohow.vfs.provider.uri.UriFileObject;
 import cc.whohow.vfs.selector.FileSelectors;
 import cc.whohow.vfs.tree.FileObjectFindTree;
@@ -11,6 +12,7 @@ import cc.whohow.vfs.tree.TreePostOrderIterator;
 import com.aliyun.oss.model.ObjectMetadata;
 import org.apache.commons.vfs2.*;
 import org.apache.commons.vfs2.operations.FileOperations;
+import org.apache.commons.vfs2.provider.FileNameParser;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -33,7 +35,7 @@ import java.util.stream.StreamSupport;
  * 阿里云文件对象
  */
 public class AliyunOSSFileObject extends AliyunOSSObject
-        implements DataFileObject, ListableFileObject, SimplifyFileObject, StatelessFileObject {
+        implements CanonicalNameFileObject, DataFileObject, ListableFileObject, SimplifyFileObject, StatelessFileObject {
     protected final AliyunOSSFileSystem fileSystem;
     protected final AliyunOSSFileName name;
 
@@ -160,7 +162,7 @@ public class AliyunOSSFileObject extends AliyunOSSObject
             FileObject file = iterator.next();
             if (file.isFile()) {
                 String relative = file.getName().getRelativeName(name);
-                getDescendant(relative).copyFile(file);
+                getRelative(relative).copyFile(file);
             }
         }
     }
@@ -247,13 +249,13 @@ public class AliyunOSSFileObject extends AliyunOSSObject
             return Stream.of(this);
         }
         if (selector == Selectors.SELECT_SELF_AND_CHILDREN) {
-            AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, false);
+            Iterator<FileObject> iterator = AliyunOSSFileObjectIterator.create(this, false);
             return Stream.concat(
                     Stream.of(this),
                     StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false));
         }
         if (selector == Selectors.SELECT_CHILDREN) {
-            AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, false);
+            Iterator<FileObject> iterator = AliyunOSSFileObjectIterator.create(this, false);
             return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false);
         }
         if (depthwise) {
@@ -263,7 +265,7 @@ public class AliyunOSSFileObject extends AliyunOSSObject
         }
         // 仅文件，原生查询优化
         if (selector == Selectors.SELECT_FILES) {
-            AliyunOSSFileObjectIterator iterator = new AliyunOSSFileObjectIterator(this, true, true, false);
+            Iterator<FileObject> iterator = AliyunOSSFileObjectIterator.create(this, true, true, false);
             return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false);
         }
         // 默认广度优先，程序性能更好
@@ -363,17 +365,17 @@ public class AliyunOSSFileObject extends AliyunOSSObject
                 return getChild(name);
             }
             case DESCENDENT: {
-                AliyunOSSFileObject file = getDescendant(name);
+                AliyunOSSFileObject file = getRelative(name);
                 if (file.getName().equals(getName())) {
                     throw new FileSystemException("vfs.provider/resolve-file.error", name);
                 }
                 return file;
             }
             case DESCENDENT_OR_SELF: {
-                return getDescendant(name);
+                return getRelative(name);
             }
             case FILE_SYSTEM: {
-                if (AliyunOSSFileName.isRelative(name)) {
+                if (PathParser.isRelative(name)) {
                     return getRelative(name);
                 } else {
                     return getFileSystem().getFileSystemManager().resolveFile(name);
@@ -397,10 +399,6 @@ public class AliyunOSSFileObject extends AliyunOSSObject
 
     public AliyunOSSFileObject getRelative(String path) {
         return new AliyunOSSFileObject(getFileSystem(), getName().resolveRelative(path));
-    }
-
-    public AliyunOSSFileObject getDescendant(String path) {
-        return getRelative(path);
     }
 
     public Iterator<FileObject> iterator() {
@@ -429,5 +427,10 @@ public class AliyunOSSFileObject extends AliyunOSSObject
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    @Override
+    public Collection<String> getCanonicalNames() {
+        return fileSystem.getCanonicalNames(name);
     }
 }

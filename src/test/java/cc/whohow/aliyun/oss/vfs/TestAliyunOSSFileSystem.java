@@ -5,7 +5,7 @@ import cc.whohow.aliyun.oss.FileObjects;
 import cc.whohow.aliyun.oss.vfs.copy.FileObjectCopier;
 import cc.whohow.aliyun.oss.vfs.operations.*;
 import cc.whohow.vfs.FluentFileObject;
-import cc.whohow.vfs.RootFileSystem;
+import cc.whohow.vfs.VirtualFileSystemManager;
 import org.apache.commons.vfs2.*;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -26,7 +26,7 @@ public class TestAliyunOSSFileSystem {
     private static String secretAccessKey = "";
     private static String bucketName = "yt-temp";
     private static String endpoint = "oss-cn-hangzhou.aliyuncs.com";
-    private static AliyunOSSFileSystem vfs;
+    private static VirtualFileSystemManager vfs;
 
     @BeforeClass
     @SuppressWarnings("all")
@@ -38,17 +38,22 @@ public class TestAliyunOSSFileSystem {
             secretAccessKey = properties.getProperty("secretAccessKey");
         }
 
-        VFS.setManager(new RootFileSystem());
-        new AliyunOSSCompareFileContent.Provider().register("oss");
-        new AliyunOSSGetSignedUrl.Provider().register("oss");
-        new AliyunOSSProcessImage.Provider().register("oss");
-        new UriGetSignedUrl.Provider().register("http", "https");
-        new UriProcessImage.Provider().register("http", "https");
+        vfs = new VirtualFileSystemManager();
+        VFS.setManager(vfs);
+        vfs.addOperationProvider("oss", new AliyunOSSCompareFileContent.Provider());
+        vfs.addOperationProvider("oss", new AliyunOSSGetSignedUrl.Provider());
+        vfs.addOperationProvider("oss", new AliyunOSSProcessImage.Provider());
+        vfs.addOperationProvider(new String[]{"http", "https"}, new UriGetSignedUrl.Provider());
+        vfs.addOperationProvider(new String[]{"http", "https"}, new UriProcessImage.Provider());
 
         AliyunOSS.configure(accessKeyId, secretAccessKey);
-        AliyunOSS.configureCname("oss://yt-temp/test-fs/copy/", "https://temp.yitong.com/test-fs/copy/");
+        AliyunOSS.configureCname("oss://yt-temp/test-fs/", "https://temp.yitong.com/test-fs/");
         AliyunOSS.setExecutor(Executors.newScheduledThreadPool(8));
-        vfs = AliyunOSSFileSystem.getInstance();
+        AliyunOSSFileSystem fs = AliyunOSSFileSystem.getInstance();
+        vfs.addProvider(fs.getScheme(), fs);
+
+        vfs.addJunction("/temp/", "oss://yt-temp/");
+        vfs.addJunction("/temp/test-fs/", "oss://yt-temp/test-fs/");
     }
 
     @AfterClass
@@ -59,7 +64,9 @@ public class TestAliyunOSSFileSystem {
     @Test
     public void testVirtualFileSystem() throws Exception {
         FileObject temp = vfs.resolveFile("oss://yt-temp/test-fs/");
-        System.out.println(temp);
+        System.out.println(temp.getPublicURIString());
+        System.out.println(vfs.resolveFile("https://temp.yitong.com/test-fs/url/random.jpg").getClass());
+        System.out.println(vfs.resolveFile("https://temp.yitong.com/test-fs/url/random.jpg@compressed.jpg").getClass());
     }
 
     @Test

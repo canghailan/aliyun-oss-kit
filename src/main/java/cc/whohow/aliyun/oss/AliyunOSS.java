@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 public class AliyunOSS {
     private static final Set<AliyunOSSUri> PROFILES = new CopyOnWriteArraySet<>();
     private static final AliyunOSSContext CONTEXT = new AliyunOSSContext();
-    private static final AliyunOSSUrlFactory URL_FACTORY = new AliyunOSSUrlFactory(CONTEXT);
+    private static final AliyunOSSUriFactory URI_FACTORY = new AliyunOSSUriFactory(CONTEXT);
     private static volatile ScheduledExecutorService EXECUTOR;
 
     /**
@@ -49,7 +49,7 @@ public class AliyunOSS {
      * 配置Cname
      */
     public static void configureCname(AliyunOSSUri uri, URI cname) {
-        URL_FACTORY.configureCname(uri, cname);
+        URI_FACTORY.configureCname(uri, cname);
     }
 
 
@@ -57,8 +57,8 @@ public class AliyunOSS {
         return CONTEXT;
     }
 
-    public static AliyunOSSUrlFactory getUrlFactory() {
-        return URL_FACTORY;
+    public static AliyunOSSUriFactory getUriFactory() {
+        return URI_FACTORY;
     }
 
     /**
@@ -111,23 +111,23 @@ public class AliyunOSS {
     }
 
     public static String getExtranetUrl(AliyunOSSUri uri) {
-        return URL_FACTORY.getExtranetUrl(uri);
+        return URI_FACTORY.getExtranetUrl(uri);
     }
 
     public static String getIntranetUrl(AliyunOSSUri uri) {
-        return URL_FACTORY.getIntranetUrl(uri);
+        return URI_FACTORY.getIntranetUrl(uri);
     }
 
     public static String getCnameUrl(AliyunOSSUri uri) {
-        return URL_FACTORY.getCnameUrl(uri);
+        return URI_FACTORY.getCnameUrl(uri);
     }
 
     public static String getCnameUrl(AliyunOSSUri uri, Date expires) {
-        return URL_FACTORY.getCnameUrl(uri, expires);
+        return URI_FACTORY.getCnameUrl(uri, expires);
     }
 
     public static String getUrl(AliyunOSSUri uri) {
-        return URL_FACTORY.getUrl(uri);
+        return URI_FACTORY.getUrl(uri);
     }
 
     public static ScheduledExecutorService getExecutor() {

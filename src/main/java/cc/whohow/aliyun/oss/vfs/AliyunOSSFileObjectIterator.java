@@ -12,6 +12,7 @@ import java.util.Iterator;
 
 /**
  * VFS 文件遍历器
+ * TODO 优化
  */
 public class AliyunOSSFileObjectIterator implements Iterator<FileObject> {
     private final AliyunOSSFileObject baseFolder;
@@ -22,11 +23,18 @@ public class AliyunOSSFileObjectIterator implements Iterator<FileObject> {
     private Iterator<OSSObjectSummary> objectSummaryIterator;
     private AliyunOSSFileObject fileObject;
 
-    public AliyunOSSFileObjectIterator(AliyunOSSFileObject baseFolder, boolean recursively) {
-        this(baseFolder, recursively, true, true);
+    public static Iterator<FileObject> create(AliyunOSSFileObject baseFolder, boolean recursively) {
+        return new AliyunOSSFileObjectIterator(baseFolder, recursively, true, true);
     }
 
-    public AliyunOSSFileObjectIterator(
+    public static Iterator<FileObject> create(AliyunOSSFileObject baseFolder,
+            boolean recursively,
+            boolean listFile,
+            boolean listFolder) {
+        return new AliyunOSSFileObjectIterator(baseFolder, recursively, listFile, listFolder);
+    }
+
+    private AliyunOSSFileObjectIterator(
             AliyunOSSFileObject baseFolder,
             boolean recursively,
             boolean listFile,

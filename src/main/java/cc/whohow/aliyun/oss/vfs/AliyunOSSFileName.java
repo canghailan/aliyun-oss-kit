@@ -1,6 +1,7 @@
 package cc.whohow.aliyun.oss.vfs;
 
 import cc.whohow.aliyun.oss.AliyunOSSUri;
+import cc.whohow.vfs.SimplifyFileName;
 import cc.whohow.vfs.path.NameIterator;
 import cc.whohow.vfs.path.PathBuilder;
 import cc.whohow.vfs.path.PathParser;
@@ -19,7 +20,7 @@ import java.util.Iterator;
  * @see com.aliyun.oss.model.OSSObject
  * @see com.aliyun.oss.model.Bucket
  */
-public class AliyunOSSFileName extends AliyunOSSUri implements FileName, Iterable<CharSequence> {
+public class AliyunOSSFileName extends AliyunOSSUri implements SimplifyFileName, Iterable<CharSequence> {
     public AliyunOSSFileName(String uri) {
         super(uri);
     }
@@ -33,66 +34,10 @@ public class AliyunOSSFileName extends AliyunOSSUri implements FileName, Iterabl
     }
 
     /**
-     * 文件类型
-     */
-    public static FileType getFileType(String key) {
-        if (key.isEmpty() || key.endsWith(SEPARATOR)) {
-            return FileType.FOLDER;
-        } else {
-            return FileType.FILE;
-        }
-    }
-
-    /**
-     * 是否是相对路径
-     */
-    public static boolean isRelative(String path) {
-        return isRelative(URI.create(path));
-    }
-
-    /**
-     * 是否是相对路径
-     */
-    public static boolean isRelative(URI uri) {
-        return uri.getScheme() == null &&
-                uri.getHost() == null &&
-                uri.getPath() != null &&
-                !uri.getPath().startsWith(FileName.SEPARATOR);
-    }
-
-    /**
-     * 文件名
-     */
-    public String getBaseName() {
-        return newParser().getLastName();
-    }
-
-    /**
      * 路径
      */
     public String getPath() {
         return SEPARATOR + getKey();
-    }
-
-    /**
-     * 路径
-     */
-    public String getPathDecoded() {
-        return getPath();
-    }
-
-    /**
-     * 扩展名，不含.
-     */
-    public String getExtension() {
-        return newParser().getExtension();
-    }
-
-    /**
-     * 名称数
-     */
-    public int getDepth() {
-        return newParser().getNameCount();
     }
 
     /**
@@ -127,7 +72,7 @@ public class AliyunOSSFileName extends AliyunOSSUri implements FileName, Iterabl
      * 上级目录
      */
     public AliyunOSSFileName getParent() {
-        String parent = newParser().getParent();
+        String parent = parser().getParent();
         if (parent == null) {
             return null;
         }
@@ -145,7 +90,10 @@ public class AliyunOSSFileName extends AliyunOSSUri implements FileName, Iterabl
      * 解析相对路径
      */
     public AliyunOSSFileName resolveRelative(String relative) {
-        String newKey = newBuilder().resolve(relative).startsWithSeparator(false).toString();
+        String newKey = builder()
+                .resolve(relative)
+                .startsWithSeparator(false)
+                .toString();
         return new AliyunOSSFileName(getBucketName(), newKey);
     }
 
@@ -159,29 +107,17 @@ public class AliyunOSSFileName extends AliyunOSSUri implements FileName, Iterabl
                 throw new FileSystemException("");
             }
 
-            return newBuilder()
-                    .relativize(that.newBuilder())
+            return builder()
+                    .relativize(that.builder())
                     .toString();
         }
         throw new FileSystemException("");
     }
 
     /**
-     * 是否是祖先
+     * 是否是下级文件列表，过滤
      */
-    public boolean isAncestor(FileName ancestor) {
-        if (ancestor instanceof AliyunOSSFileName) {
-            AliyunOSSFileName ancestorName = (AliyunOSSFileName) ancestor;
-            return ancestorName.getBucketName().equals(getBucketName()) &&
-                    getKey().startsWith(ancestorName.getKey());
-        }
-        return false;
-    }
-
-    /**
-     * 是否是下级文件列表
-     */
-    public boolean isDescendent(FileName descendant) {
+    public boolean isDescendent(FileName descendant, NameScope nameScope) {
         if (descendant instanceof AliyunOSSFileName) {
             AliyunOSSFileName descendantName = (AliyunOSSFileName) descendant;
             return descendantName.getBucketName().equals(getBucketName()) &&
@@ -191,38 +127,14 @@ public class AliyunOSSFileName extends AliyunOSSUri implements FileName, Iterabl
     }
 
     /**
-     * 是否是下级文件列表，过滤
-     */
-    public boolean isDescendent(FileName descendant, NameScope nameScope) {
-        return isDescendent(descendant);
-    }
-
-    /**
-     * 是否是文件
-     */
-    public boolean isFile() {
-        return getType() == FileType.FILE;
-    }
-
-    /**
      * 获取文件类型
      */
     public FileType getType() {
-        return getFileType(getKey());
-    }
-
-    /**
-     * 获取URI
-     */
-    public String getFriendlyURI() {
-        return toString();
-    }
-
-    /**
-     * 比较
-     */
-    public int compareTo(FileName o) {
-        return toString().compareTo(o.toString());
+        if (key.isEmpty() || key.endsWith(SEPARATOR)) {
+            return FileType.FOLDER;
+        } else {
+            return FileType.FILE;
+        }
     }
 
     /**
@@ -236,11 +148,11 @@ public class AliyunOSSFileName extends AliyunOSSUri implements FileName, Iterabl
         return new NameIterator(getKey(), SEPARATOR_CHAR);
     }
 
-    private PathParser newParser() {
+    private PathParser parser() {
         return new PathParser(getKey());
     }
 
-    private PathBuilder newBuilder() {
+    private PathBuilder builder() {
         return new PathBuilder(getKey())
                 .startsWithSeparator(true)
                 .endsWithSeparator(getType() == FileType.FOLDER);

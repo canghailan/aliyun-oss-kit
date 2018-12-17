@@ -30,7 +30,7 @@ public class OSSLoggingProxy implements OSS {
     }
 
     private void trace(String format, Object... args) {
-        if (log.isInfoEnabled()) {
+        if (log.isDebugEnabled()) {
             StringBuffer buffer = new StringBuffer(format.length() + args.length * 16);
             Matcher matcher = PLACEHOLDER.matcher(format);
             for (Object arg : args) {
@@ -41,7 +41,7 @@ public class OSSLoggingProxy implements OSS {
                 }
             }
             matcher.appendTail(buffer);
-            log.info(buffer);
+            log.debug(buffer);
         }
     }
 

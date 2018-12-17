@@ -10,11 +10,11 @@ import java.util.Objects;
  * </pre>
  */
 public class AliyunOSSUri {
-    private final String accessKeyId;
-    private final String secretAccessKey;
-    private final String bucketName;
-    private final String endpoint;
-    private final String key;
+    protected final String accessKeyId;
+    protected final String secretAccessKey;
+    protected final String bucketName;
+    protected final String endpoint;
+    protected final String key;
     private volatile String uri;
 
     public AliyunOSSUri(String uri) {

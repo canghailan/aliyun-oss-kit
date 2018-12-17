@@ -12,10 +12,7 @@ import com.aliyuncs.profile.DefaultProfile;
 import com.aliyuncs.profile.IClientProfile;
 
 import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
@@ -32,6 +29,10 @@ public class AliyunOSSContext implements Closeable {
 
     public AliyunOSSContext(ClientConfiguration clientConfiguration) {
         this.clientConfiguration = clientConfiguration;
+    }
+
+    public List<IClientProfile> getProfiles() {
+        return Collections.unmodifiableList(profiles);
     }
 
     public void addProfile(AliyunOSSUri profile) {
