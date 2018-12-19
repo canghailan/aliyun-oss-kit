@@ -43,6 +43,7 @@ public class TestAliyunOSSFileSystem {
         vfs.addOperationProvider("oss", new AliyunOSSCompareFileContent.Provider());
         vfs.addOperationProvider("oss", new AliyunOSSGetSignedUrl.Provider());
         vfs.addOperationProvider("oss", new AliyunOSSProcessImage.Provider());
+        vfs.addOperationProvider("oss", new AliyunOSSGetAccountAlias.Provider());
         vfs.addOperationProvider(new String[]{"http", "https"}, new UriGetSignedUrl.Provider());
         vfs.addOperationProvider(new String[]{"http", "https"}, new UriProcessImage.Provider());
 
@@ -451,5 +452,13 @@ public class TestAliyunOSSFileSystem {
             }
         });
         Thread.sleep(180_000L);
+    }
+
+    @Test
+    public void testAccountAlias() throws Exception {
+        GetAccountAlias getAccountAlias = (GetAccountAlias)
+                vfs.resolveFile("oss://yt-temp/test-fs/url/random.jpg")
+                .getFileOperations().getOperation(GetAccountAlias.class);
+        System.out.println(getAccountAlias.get());
     }
 }

@@ -6,10 +6,15 @@ import com.aliyun.oss.OSSClient;
 import com.aliyun.oss.common.auth.CredentialsProvider;
 import com.aliyun.oss.common.auth.DefaultCredentialProvider;
 import com.aliyun.oss.model.Bucket;
+import com.aliyuncs.DefaultAcsClient;
+import com.aliyuncs.IAcsClient;
 import com.aliyuncs.auth.AlibabaCloudCredentials;
 import com.aliyuncs.auth.StaticCredentialsProvider;
+import com.aliyuncs.exceptions.ClientException;
 import com.aliyuncs.profile.DefaultProfile;
 import com.aliyuncs.profile.IClientProfile;
+import com.aliyuncs.ram.model.v20150501.GetAccountAliasRequest;
+import com.aliyuncs.ram.model.v20150501.GetAccountAliasResponse;
 
 import java.io.Closeable;
 import java.util.*;
@@ -52,6 +57,12 @@ public class AliyunOSSContext implements Closeable {
                 .collect(Collectors.toList());
     }
 
+    public String getAccountAlias(String name) {
+        BucketContext bucketContext = buckets.get(name);
+        Objects.requireNonNull(bucketContext);
+        return bucketContext.accountAlias;
+    }
+
     public Bucket getBucket(String name) {
         BucketContext bucketContext = buckets.get(name);
         Objects.requireNonNull(bucketContext);
@@ -91,6 +102,7 @@ public class AliyunOSSContext implements Closeable {
         CredentialsProvider credentialsProvider = new DefaultCredentialProvider(credentials.getAccessKeyId(), credentials.getAccessKeySecret());
         OSS oss = new OSSClient(AliyunOSSEndpointsProvider.getDefaultEndpoint(), credentialsProvider, clientConfiguration);
         try {
+            String accountAlias = getAccountAlias(profile);
             List<Bucket> bucketList = oss.listBuckets();
             List<BucketContext> bucketContextList = new ArrayList<>(bucketList.size());
             for (Bucket bucket : bucketList) {
@@ -100,13 +112,27 @@ public class AliyunOSSContext implements Closeable {
                         bucket.getName(),
                         AliyunOSSEndpointsProvider.getEndpoint(bucket.getExtranetEndpoint()),
                         null);
-                bucketContextList.add(new BucketContext(bucket, profile, getOSS(uri), uri));
+                bucketContextList.add(new BucketContext(bucket, profile, accountAlias, getOSS(uri), uri));
             }
             return bucketContextList;
         } finally {
             close(oss);
         }
     }
+
+
+    private String getAccountAlias(IClientProfile profile) {
+        try {
+            IAcsClient acsClient = new DefaultAcsClient(profile);
+            GetAccountAliasRequest request = new GetAccountAliasRequest();
+            request.setRegionId("cn-hangzhou");
+            GetAccountAliasResponse response = acsClient.getAcsResponse(request);
+            return response.getAccountAlias();
+        } catch (ClientException e) {
+            return null;
+        }
+    }
+
 
     private void addBucket(BucketContext bucketContext) {
         buckets.put(bucketContext.bucket.getName(), bucketContext);
@@ -137,12 +163,14 @@ public class AliyunOSSContext implements Closeable {
     static class BucketContext {
         final Bucket bucket;
         final IClientProfile profile;
+        final String accountAlias;
         final OSS oss;
         final AliyunOSSUri uri;
 
-        BucketContext(Bucket bucket, IClientProfile profile, OSS oss, AliyunOSSUri uri) {
+        BucketContext(Bucket bucket, IClientProfile profile, String accountAlias, OSS oss, AliyunOSSUri uri) {
             this.bucket = bucket;
             this.profile = profile;
+            this.accountAlias = accountAlias;
             this.oss = oss;
             this.uri = uri;
         }

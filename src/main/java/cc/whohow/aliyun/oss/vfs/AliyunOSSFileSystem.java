@@ -103,6 +103,10 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FilePro
         return uriFactory.getCanonicalUris(uri);
     }
 
+    public String getAccountAlias(AliyunOSSUri uri) {
+        return context.getAccountAlias(uri.getBucketName());
+    }
+
     public static String getScheme() {
         return SCHEME;
     }
