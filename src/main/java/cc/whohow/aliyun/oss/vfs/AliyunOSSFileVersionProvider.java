@@ -35,7 +35,7 @@ public class AliyunOSSFileVersionProvider extends FileAttributeVersionProvider {
             if (fileObject.isFile()) {
                 return Stream.of(getVersion(fileObject));
             } else {
-                return new FluentFileObject(fileObject)
+                return FluentFileObject.of(fileObject)
                         .find(Selectors.SELECT_FILES)
                         .map(this::getVersion);
             }

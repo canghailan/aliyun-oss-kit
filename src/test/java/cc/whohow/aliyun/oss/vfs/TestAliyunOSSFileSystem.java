@@ -96,35 +96,35 @@ public class TestAliyunOSSFileSystem {
 
     @Test
     public void testList() throws Exception {
-        new FluentFileObject(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
+        FluentFileObject.of(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
                 .list()
                 .forEach(System.out::println);
     }
 
     @Test
     public void testListRecursively() throws Exception {
-        new FluentFileObject(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
+        FluentFileObject.of(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
                 .listRecursively()
                 .forEach(System.out::println);
     }
 
     @Test
     public void testFind() throws Exception {
-        new FluentFileObject(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
+        FluentFileObject.of(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
                 .find()
                 .forEach(System.out::println);
     }
 
     @Test
     public void testFindFile() throws Exception {
-        new FluentFileObject(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
+        FluentFileObject.of(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
                 .find(Selectors.SELECT_FILES)
                 .forEach(System.out::println);
     }
 
     @Test
     public void testFindExcludeSelf() throws Exception {
-        new FluentFileObject(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
+        FluentFileObject.of(vfs.resolveFile("oss://yt-temp/test-fs/sync/src/main/java/cc/whohow/aliyun/oss/"))
                 .find(Selectors.EXCLUDE_SELF)
                 .forEach(System.out::println);
     }
@@ -227,8 +227,8 @@ public class TestAliyunOSSFileSystem {
         System.out.println(file.getName().getParent());
         System.out.println(file.getName().getType());
         System.out.println(file.getPublicURIString());
-        System.out.println(new FluentFileObject(file)
-                .apply(ProcessImage.class, (f, op) -> op.setParameters("@compress.jpg").get()));
+        System.out.println(FluentFileObject.of(file)
+                .doOperation(ProcessImage.class, (f, op) -> op.setParameters("@compress.jpg").get()));
         vfs.resolveFile("oss://yt-temp/test-kit/a.jpg")
                 .copyFrom(FileObjects.newOperation(file, ProcessImage.class).setParameters("@compress.jpg").get(), Selectors.SELECT_ALL);
     }

@@ -7,6 +7,7 @@ import cc.whohow.aliyun.oss.AliyunOSSUriFactory;
 import cc.whohow.vfs.watch.FileWatchMonitor;
 import cc.whohow.vfs.watch.FileWatcher;
 import com.aliyun.oss.OSS;
+import com.aliyun.oss.model.Bucket;
 import org.apache.commons.vfs2.*;
 import org.apache.commons.vfs2.provider.AbstractVfsComponent;
 import org.apache.commons.vfs2.provider.FileProvider;
@@ -93,6 +94,10 @@ public class AliyunOSSFileSystem extends AbstractVfsComponent implements FilePro
 
     public OSS getOSS(AliyunOSSUri uri) {
         return context.getOSS(uri);
+    }
+
+    public Bucket getBucket(AliyunOSSUri uri) {
+        return context.getBucket(uri.getBucketName());
     }
 
     public String getUrl(AliyunOSSUri uri) {
