@@ -1,8 +1,7 @@
 package cc.whohow.aliyun.oss.vfs;
 
 import cc.whohow.aliyun.oss.AliyunOSSUri;
-import cc.whohow.vfs.SimplifyFileName;
-import cc.whohow.vfs.path.NameIterator;
+import cc.whohow.vfs.SimpleFileName;
 import cc.whohow.vfs.path.PathBuilder;
 import cc.whohow.vfs.path.PathParser;
 import org.apache.commons.vfs2.FileName;
@@ -11,8 +10,6 @@ import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.NameScope;
 
 import java.net.URI;
-import java.util.Collections;
-import java.util.Iterator;
 
 /**
  * 阿里云文件名
@@ -20,7 +17,7 @@ import java.util.Iterator;
  * @see com.aliyun.oss.model.OSSObject
  * @see com.aliyun.oss.model.Bucket
  */
-public class AliyunOSSFileName extends AliyunOSSUri implements SimplifyFileName, Iterable<CharSequence> {
+public class AliyunOSSFileName extends AliyunOSSUri implements SimpleFileName {
     public AliyunOSSFileName(String uri) {
         super(uri);
     }
@@ -72,11 +69,11 @@ public class AliyunOSSFileName extends AliyunOSSUri implements SimplifyFileName,
      * 上级目录
      */
     public AliyunOSSFileName getParent() {
-        String parent = parser().getParent();
-        if (parent == null) {
+        String prefix = new PathParser(key).getParent();
+        if (prefix == null) {
             return null;
         }
-        return new AliyunOSSFileName(getBucketName(), parent);
+        return new AliyunOSSFileName(getBucketName(), prefix);
     }
 
     /**
@@ -137,22 +134,7 @@ public class AliyunOSSFileName extends AliyunOSSUri implements SimplifyFileName,
         }
     }
 
-    /**
-     * 名称列表
-     */
-    @Override
-    public Iterator<CharSequence> iterator() {
-        if (getKey().isEmpty()) {
-            return Collections.emptyIterator();
-        }
-        return new NameIterator(getKey(), SEPARATOR_CHAR);
-    }
-
-    private PathParser parser() {
-        return new PathParser(getKey());
-    }
-
-    private PathBuilder builder() {
+    public PathBuilder builder() {
         return new PathBuilder(getKey())
                 .startsWithSeparator(true)
                 .endsWithSeparator(getType() == FileType.FOLDER);

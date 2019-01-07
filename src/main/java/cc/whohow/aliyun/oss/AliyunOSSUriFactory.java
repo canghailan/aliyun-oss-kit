@@ -6,13 +6,17 @@ import org.apache.commons.codec.digest.DigestUtils;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.function.Function;
 
+/**
+ * 阿里云OSS URI工厂
+ */
 public class AliyunOSSUriFactory {
-    private final AliyunOSSContext context;
+    private final Function<String, Bucket> bucketProvider;
     private final NavigableMap<String, URI> cnames = new ConcurrentSkipListMap<>(Comparator.reverseOrder());
 
-    public AliyunOSSUriFactory(AliyunOSSContext context) {
-        this.context = context;
+    public AliyunOSSUriFactory(Function<String, Bucket> bucketProvider) {
+        this.bucketProvider = bucketProvider;
     }
 
     private static String http(String https) {
@@ -25,7 +29,7 @@ public class AliyunOSSUriFactory {
     /**
      * 配置Cname
      */
-    public void configureCname(AliyunOSSUri uri, URI cname) {
+    public void addCname(AliyunOSSUri uri, URI cname) {
         Objects.requireNonNull(uri.getBucketName());
         Objects.requireNonNull(cname);
         cnames.put(getShortUri(uri), cname);
@@ -81,7 +85,7 @@ public class AliyunOSSUriFactory {
     }
 
     public String getExtranetUrl(AliyunOSSUri uri) {
-        Bucket bucket = context.getBucket(uri.getBucketName());
+        Bucket bucket = bucketProvider.apply(uri.getBucketName());
         if (bucket == null) {
             throw new IllegalStateException();
         }
@@ -89,7 +93,7 @@ public class AliyunOSSUriFactory {
     }
 
     public String getIntranetUrl(AliyunOSSUri uri) {
-        Bucket bucket = context.getBucket(uri.getBucketName());
+        Bucket bucket = bucketProvider.apply(uri.getBucketName());
         if (bucket == null) {
             throw new IllegalStateException();
         }
@@ -109,7 +113,7 @@ public class AliyunOSSUriFactory {
     }
 
     public String getLongExtranetUri(AliyunOSSUri uri) {
-        Bucket bucket = context.getBucket(uri.getBucketName());
+        Bucket bucket = bucketProvider.apply(uri.getBucketName());
         if (bucket == null) {
             throw new IllegalStateException();
         }
@@ -117,7 +121,7 @@ public class AliyunOSSUriFactory {
     }
 
     public String getLongIntranetUri(AliyunOSSUri uri) {
-        Bucket bucket = context.getBucket(uri.getBucketName());
+        Bucket bucket = bucketProvider.apply(uri.getBucketName());
         if (bucket == null) {
             throw new IllegalStateException();
         }

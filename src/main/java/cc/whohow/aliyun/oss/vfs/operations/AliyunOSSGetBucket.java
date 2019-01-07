@@ -14,7 +14,7 @@ public class AliyunOSSGetBucket implements GetBucket {
 
     @Override
     public Bucket get() {
-        return fileObject.getFileSystem().getBucket(fileObject.getName());
+        return fileObject.getFileSystem().getBucket();
     }
 
     @Override

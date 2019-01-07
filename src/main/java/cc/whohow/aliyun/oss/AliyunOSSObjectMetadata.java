@@ -12,6 +12,10 @@ import java.util.stream.Collectors;
 public class AliyunOSSObjectMetadata {
     public static final Set<String> RAW_META_DATA = Collections.unmodifiableSet(getRawMetaData());
 
+    public static boolean isRawMetaData(String name) {
+        return RAW_META_DATA.contains(name.toLowerCase());
+    }
+
     private static Set<String> getRawMetaData() {
         return Arrays.stream(OSSHeaders.class.getFields())
                 .map(f -> {
@@ -20,14 +24,16 @@ public class AliyunOSSObjectMetadata {
                     } catch (IllegalAccessException e) {
                         throw new UndeclaredThrowableException(e);
                     }
-                }).collect(Collectors.toSet());
+                })
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet());
     }
 
     public static String normalizeName(String name) {
         Objects.requireNonNull(name);
         name = name.toLowerCase();
-        if (name.startsWith("x-oss-meta-")) {
-            name = name.substring("x-oss-meta-".length());
+        if (name.startsWith(OSSHeaders.OSS_USER_METADATA_PREFIX)) {
+            name = name.substring(OSSHeaders.OSS_USER_METADATA_PREFIX.length());
         }
         return name;
     }

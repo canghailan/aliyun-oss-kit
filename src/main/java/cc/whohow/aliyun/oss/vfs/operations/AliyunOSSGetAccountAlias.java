@@ -13,7 +13,7 @@ public class AliyunOSSGetAccountAlias implements GetAccountAlias {
 
     @Override
     public String get() {
-        return fileObject.getFileSystem().getAccountAlias(fileObject.getName());
+        return fileObject.getFileSystem().getAccountAlias();
     }
 
     @Override

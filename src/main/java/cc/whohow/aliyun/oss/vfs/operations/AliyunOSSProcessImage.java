@@ -1,6 +1,5 @@
 package cc.whohow.aliyun.oss.vfs.operations;
 
-import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.vfs.AliyunOSSFileObject;
 import cc.whohow.vfs.operations.FileOperationFactoryProvider;
 import org.apache.commons.vfs2.FileObject;
@@ -34,7 +33,8 @@ public class AliyunOSSProcessImage implements ProcessImage {
     @Override
     public void process() throws FileSystemException {
         processedFileObject = originFileObject.getFileSystem().getFileSystemManager().resolveFile(
-                AliyunOSS.getExtranetUrl(originFileObject.getName()) + parameters);
+                originFileObject.getFileSystem().getFileProvider().getUriFactory()
+                        .getExtranetUrl(originFileObject.getName()) + parameters);
     }
 
     public static class Provider extends FileOperationFactoryProvider<AliyunOSSFileObject, ProcessImage> {

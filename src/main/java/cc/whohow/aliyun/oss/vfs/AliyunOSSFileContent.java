@@ -1,7 +1,7 @@
 package cc.whohow.aliyun.oss.vfs;
 
 import cc.whohow.aliyun.oss.AliyunOSSObjectMetadata;
-import cc.whohow.vfs.SimplifyFileContent;
+import cc.whohow.vfs.SimpleFileContent;
 import cc.whohow.vfs.StatelessFileContent;
 import com.aliyun.oss.model.ObjectMetadata;
 import org.apache.commons.vfs2.FileContent;
@@ -21,7 +21,7 @@ import java.util.Map;
 /**
  * 阿里云文件内容
  */
-public class AliyunOSSFileContent implements SimplifyFileContent, StatelessFileContent {
+public class AliyunOSSFileContent implements SimpleFileContent, StatelessFileContent {
     protected final AliyunOSSFileObject file;
 
     public AliyunOSSFileContent(AliyunOSSFileObject file) {
@@ -73,7 +73,7 @@ public class AliyunOSSFileContent implements SimplifyFileContent, StatelessFileC
     public void setAttribute(String attrName, Object value) {
         attrName = AliyunOSSObjectMetadata.normalizeName(attrName);
         ObjectMetadata objectMetadata = file.getObjectMetadata();
-        if (AliyunOSSObjectMetadata.RAW_META_DATA.contains(attrName)) {
+        if (AliyunOSSObjectMetadata.isRawMetaData(attrName)) {
             objectMetadata.setHeader(attrName, value);
         } else {
             objectMetadata.addUserMetadata(attrName, String.valueOf(value));
@@ -85,7 +85,7 @@ public class AliyunOSSFileContent implements SimplifyFileContent, StatelessFileC
     public void removeAttribute(String attrName) {
         attrName = AliyunOSSObjectMetadata.normalizeName(attrName);
         ObjectMetadata objectMetadata = file.getObjectMetadata();
-        if (AliyunOSSObjectMetadata.RAW_META_DATA.contains(attrName)) {
+        if (AliyunOSSObjectMetadata.isRawMetaData(attrName)) {
             objectMetadata.setHeader(attrName, null);
         } else {
             objectMetadata.getUserMetadata().remove(attrName);
@@ -120,8 +120,7 @@ public class AliyunOSSFileContent implements SimplifyFileContent, StatelessFileC
     }
 
     private long write(AliyunOSSFileContent fileContent) throws IOException {
-        AliyunOSSFileObject file = fileContent.getFile();
-        file.copyFile(getFile());
+        fileContent.getFile().copyFile(getFile());
         return getSize();
     }
 

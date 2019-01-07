@@ -1,6 +1,5 @@
 package cc.whohow.aliyun.oss.vfs.operations;
 
-import cc.whohow.aliyun.oss.AliyunOSS;
 import cc.whohow.aliyun.oss.vfs.AliyunOSSFileObject;
 import cc.whohow.vfs.operations.FileOperationFactoryProvider;
 import org.apache.commons.vfs2.FileSystemException;
@@ -23,12 +22,14 @@ public class AliyunOSSGetSignedUrl implements GetSignedUrl {
 
     @Override
     public String get() {
-        String cnameUrl = AliyunOSS.getCnameUrl(fileObject.getName(), expiration);
+        String cnameUrl = fileObject.getFileSystem().getFileProvider().getUriFactory()
+                .getCnameUrl(fileObject.getName(), expiration);
         if (cnameUrl != null) {
             return cnameUrl;
         }
 
-        String extranetUrl = AliyunOSS.getExtranetUrl(fileObject.getName());
+        String extranetUrl = fileObject.getFileSystem().getFileProvider().getUriFactory()
+                .getExtranetUrl(fileObject.getName());
         String presignedUrl = fileObject.getOSS()
                 .generatePresignedUrl(fileObject.getBucketName(), fileObject.getKey(), expiration)
                 .toString();

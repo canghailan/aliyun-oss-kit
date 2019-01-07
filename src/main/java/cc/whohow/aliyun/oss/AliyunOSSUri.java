@@ -22,8 +22,9 @@ public class AliyunOSSUri {
     }
 
     public AliyunOSSUri(URI uri) {
-        Objects.requireNonNull(uri.getHost());
-        Objects.requireNonNull(uri.getPath());
+        if (!"oss".equals(uri.getScheme()) || uri.getHost() == null || uri.getPath() == null) {
+            throw new IllegalArgumentException(uri.toString());
+        }
         if (uri.getUserInfo() != null) {
             String[] userInfo = uri.getUserInfo().split(":", 2);
             accessKeyId = userInfo[0];

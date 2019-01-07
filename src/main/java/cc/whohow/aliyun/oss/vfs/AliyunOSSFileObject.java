@@ -12,22 +12,13 @@ import cc.whohow.vfs.tree.TreePostOrderIterator;
 import com.aliyun.oss.model.ObjectMetadata;
 import org.apache.commons.vfs2.*;
 import org.apache.commons.vfs2.operations.FileOperations;
-import org.apache.commons.vfs2.provider.FileNameParser;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.methods.RequestBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -35,16 +26,15 @@ import java.util.stream.StreamSupport;
  * 阿里云文件对象
  */
 public class AliyunOSSFileObject extends AliyunOSSObject
-        implements CanonicalNameFileObject, DataFileObject, ListableFileObject, SimplifyFileObject, StatelessFileObject {
+        implements CanonicalNameFileObject, DataFileObject, ListableFileObject, SimpleFileObject, StatelessFileObject {
     protected final AliyunOSSFileSystem fileSystem;
     protected final AliyunOSSFileName name;
 
-    public AliyunOSSFileObject(String name) {
-        this(AliyunOSSFileSystem.getInstance(), new AliyunOSSFileName(name));
-    }
-
     public AliyunOSSFileObject(AliyunOSSFileSystem fileSystem, AliyunOSSFileName name) {
-        super(fileSystem.getOSS(name), name.getBucketName(), name.getKey());
+        super(fileSystem.getOSS(), name.getBucketName(), name.getKey());
+        if (!Objects.equals(fileSystem.getBucket().getName(), name.getBucketName())) {
+            throw new IllegalArgumentException(name.toString());
+        }
         this.fileSystem = fileSystem;
         this.name = name;
     }
@@ -335,7 +325,7 @@ public class AliyunOSSFileObject extends AliyunOSSObject
      * 获取展示地址
      */
     public String getPublicURIString() {
-        return fileSystem.getUrl(getName());
+        return fileSystem.getFileProvider().getUriFactory().getUrl(getName());
     }
 
     /**
@@ -413,24 +403,13 @@ public class AliyunOSSFileObject extends AliyunOSSObject
         }
     }
 
-    protected <T> T httpGet(URL url, BiFunction<HttpRequest, HttpResponse, T> callback) {
-        try {
-            HttpUriRequest request = RequestBuilder.get(url.toURI()).build();
-            try (CloseableHttpResponse response = fileSystem.getHttpClient().execute(request)) {
-                if (response.getStatusLine().getStatusCode() >= HttpStatus.SC_BAD_REQUEST) {
-                    throw new UncheckedIOException(new IOException(response.getStatusLine().getReasonPhrase()));
-                }
-                return callback.apply(request, response);
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException(e);
-        }
+    @Override
+    public String putObject(URL url, ObjectMetadata objectMetadata) {
+        return putObject(fileSystem.getFileProvider().getHttpClient(), url, objectMetadata);
     }
 
     @Override
     public Collection<String> getCanonicalNames() {
-        return fileSystem.getCanonicalNames(name);
+        return fileSystem.getFileProvider().getUriFactory().getCanonicalUris(name);
     }
 }

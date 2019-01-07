@@ -23,17 +23,6 @@ public class AliyunOSSFileObjectIterator implements Iterator<FileObject> {
     private Iterator<OSSObjectSummary> objectSummaryIterator;
     private AliyunOSSFileObject fileObject;
 
-    public static Iterator<FileObject> create(AliyunOSSFileObject baseFolder, boolean recursively) {
-        return new AliyunOSSFileObjectIterator(baseFolder, recursively, true, true);
-    }
-
-    public static Iterator<FileObject> create(AliyunOSSFileObject baseFolder,
-            boolean recursively,
-            boolean listFile,
-            boolean listFolder) {
-        return new AliyunOSSFileObjectIterator(baseFolder, recursively, listFile, listFolder);
-    }
-
     private AliyunOSSFileObjectIterator(
             AliyunOSSFileObject baseFolder,
             boolean recursively,
@@ -46,6 +35,17 @@ public class AliyunOSSFileObjectIterator implements Iterator<FileObject> {
         this.listFolder = listFolder;
         this.commonPrefixIterator = Collections.emptyIterator();
         this.objectSummaryIterator = Collections.emptyIterator();
+    }
+
+    public static Iterator<FileObject> create(AliyunOSSFileObject baseFolder, boolean recursively) {
+        return new AliyunOSSFileObjectIterator(baseFolder, recursively, true, true);
+    }
+
+    public static Iterator<FileObject> create(AliyunOSSFileObject baseFolder,
+                                              boolean recursively,
+                                              boolean listFile,
+                                              boolean listFolder) {
+        return new AliyunOSSFileObjectIterator(baseFolder, recursively, listFile, listFolder);
     }
 
     public AliyunOSSFileObject getBaseFolder() {

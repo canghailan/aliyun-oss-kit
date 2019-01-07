@@ -3,10 +3,8 @@ package cc.whohow.aliyun.oss;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.OSSObjectSummary;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 
 /**
  * ObjectSummary 遍历器
@@ -53,13 +51,5 @@ public class AliyunOSSObjectSummaryIterator implements Iterator<OSSObjectSummary
     @Override
     public void remove() {
         getOSS().deleteObject(objectSummary.getBucketName(), objectSummary.getKey());
-    }
-
-    public List<OSSObjectSummary> collect() {
-        List<OSSObjectSummary> list = new ArrayList<>();
-        while (hasNext()) {
-            list.add(next());
-        }
-        return list;
     }
 }

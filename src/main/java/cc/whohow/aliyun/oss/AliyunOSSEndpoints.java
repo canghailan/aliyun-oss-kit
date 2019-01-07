@@ -1,54 +1,31 @@
 package cc.whohow.aliyun.oss;
 
-import com.aliyuncs.exceptions.ClientException;
-import com.aliyuncs.regions.Endpoint;
-import com.aliyuncs.regions.InternalEndpointsParser;
-import com.aliyuncs.regions.ProductDomain;
-
 import java.io.IOException;
-import java.lang.reflect.UndeclaredThrowableException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * <a href="https://www.alibabacloud.com/help/zh/doc-detail/31837.htm">OSS开通Region和Endpoint对照表</a>
  */
-public class AliyunOSSEndpointsProvider {
+public class AliyunOSSEndpoints {
     private static final String DEFAULT_ENDPOINT = "oss.aliyuncs.com";
     private static final String DEFAULT_INTERNAL_ENDPOINT = "oss-internal.aliyuncs.com";
     private static final Pattern ENDPOINT = Pattern.compile("^(?<sub>.+)\\.aliyuncs\\.com$");
-    private static final List<String> ENDPOINTS = loadEndpoints();
     private static volatile CompletableFuture<Long> PING = CompletableFuture.supplyAsync(() -> ping(DEFAULT_INTERNAL_ENDPOINT));
-
-    private static List<String> loadEndpoints() {
-        try {
-            return new InternalEndpointsParser().getEndpoints().stream()
-                    .map(Endpoint::getProductDomains)
-                    .flatMap(List::stream)
-                    .filter(self -> "oss".equalsIgnoreCase(self.getProductName()))
-                    .map(ProductDomain::getDomianName)
-                    .distinct()
-                    .collect(Collectors.toList());
-        } catch (ClientException e) {
-            throw new UndeclaredThrowableException(e);
-        }
-    }
 
     public static String getDefaultEndpoint() {
         return DEFAULT_ENDPOINT;
     }
 
-    public static List<String> getEndpoints() {
-        return ENDPOINTS;
+    private static boolean isIntranet() {
+        return PING.join() > 0;
     }
 
     public static String getEndpoint(String endpoint) {
-        return PING.join() > 0 ? getIntranetEndpoint(endpoint) : getExtranetEndpoint(endpoint);
+        return isIntranet() ? getIntranetEndpoint(endpoint) : getExtranetEndpoint(endpoint);
     }
 
     public static String getExtranetEndpoint(String endpoint) {

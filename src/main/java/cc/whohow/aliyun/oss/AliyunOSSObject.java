@@ -1,10 +1,15 @@
 package cc.whohow.aliyun.oss;
 
+import cc.whohow.vfs.io.ByteBufferInputStream;
+import cc.whohow.vfs.io.Java9InputStream;
+import cc.whohow.vfs.path.PathParser;
 import cc.whohow.vfs.tree.FileTree;
 import cc.whohow.vfs.tree.TreePreOrderIterator;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.*;
-import org.apache.http.*;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
@@ -15,12 +20,13 @@ import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -41,13 +47,6 @@ public class AliyunOSSObject {
         this.oss = oss;
         this.bucketName = bucketName;
         this.key = key;
-    }
-
-    /**
-     * 计算两个URI的相对路径
-     */
-    public static String relativize(URI ancestor, URI descendant) {
-        return ancestor.relativize(descendant).normalize().getPath();
     }
 
     public OSS getOSS() {
@@ -126,7 +125,7 @@ public class AliyunOSSObject {
         URI directoryUri = directory.toURI();
         for (File file : new FileTree(directory, TreePreOrderIterator::new)) {
             if (file.isFile()) {
-                String relativePath = relativize(directoryUri, file.toURI());
+                String relativePath = PathParser.relativize(directoryUri, file.toURI());
                 String targetKey = key + relativePath;
                 oss.putObject(bucketName, targetKey, file);
                 count++;
@@ -135,56 +134,51 @@ public class AliyunOSSObject {
         return count;
     }
 
-    protected <T> T httpGet(URL url, BiFunction<HttpRequest, HttpResponse, T> callback) {
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpUriRequest request = RequestBuilder.get(url.toURI()).build();
-            try (CloseableHttpResponse response = httpClient.execute(request)) {
-                if (response.getStatusLine().getStatusCode() >= HttpStatus.SC_BAD_REQUEST) {
-                    throw new UncheckedIOException(new IOException(response.getStatusLine().getReasonPhrase()));
-                }
-                return callback.apply(request, response);
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
     /**
      * 上传链接
      */
     public String putObject(URL url) {
-        return httpGet(url, (request, response) -> {
-            HttpEntity httpEntity = response.getEntity();
-            Header contentType = httpEntity.getContentType();
-            ObjectMetadata objectMetadata = new ObjectMetadata();
-            if (contentType != null) {
-                objectMetadata.setContentType(contentType.getValue());
-            }
-            if (httpEntity.getContentLength() > 0) {
-                objectMetadata.setContentLength(httpEntity.getContentLength());
-            }
-
-            try (InputStream stream = httpEntity.getContent()) {
-                return putObject(stream, objectMetadata);
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        });
+        return putObject(url, new ObjectMetadata());
     }
 
     /**
      * 上传链接
      */
     public String putObject(URL url, ObjectMetadata objectMetadata) {
-        return httpGet(url, (request, response) -> {
-            try (InputStream stream = response.getEntity().getContent()) {
-                return putObject(stream, objectMetadata);
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            return putObject(httpClient, url, objectMetadata);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * 上传链接
+     */
+    protected String putObject(CloseableHttpClient httpClient, URL url, ObjectMetadata objectMetadata) {
+        try {
+            HttpUriRequest request = RequestBuilder.get(url.toURI()).build();
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getStatusLine().getStatusCode() >= HttpStatus.SC_BAD_REQUEST) {
+                    throw new IOException(response.getStatusLine().getReasonPhrase());
+                }
+                HttpEntity httpEntity = response.getEntity();
+                Header contentType = httpEntity.getContentType();
+                if (objectMetadata.getContentType() == null && contentType != null) {
+                    objectMetadata.setContentType(contentType.getValue());
+                }
+                if (httpEntity.getContentLength() > 0) {
+                    objectMetadata.setContentLength(httpEntity.getContentLength());
+                }
+                try (InputStream stream = httpEntity.getContent()) {
+                    return putObject(stream, objectMetadata);
+                }
             }
-        });
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     /**
@@ -430,7 +424,7 @@ public class AliyunOSSObject {
         URI directoryUri = dir.toURI();
         for (File file : new FileTree(dir, TreePreOrderIterator::new)) {
             if (file.isFile()) {
-                String relativePath = relativize(directoryUri, file.toURI());
+                String relativePath = PathParser.relativize(directoryUri, file.toURI());
                 String targetKey = key + relativePath;
                 UploadFileRequest uploadFileRequest = new UploadFileRequest(bucketName, targetKey);
                 uploadFileRequest.setUploadFile(file.getAbsolutePath());
@@ -461,7 +455,10 @@ public class AliyunOSSObject {
             ObjectListing objectListing = iterator.next();
             for (OSSObjectSummary objectSummary : objectListing.getObjectSummaries()) {
                 File file = new File(dir, objectSummary.getKey().substring(key.length()));
-                file.getParentFile().mkdirs();
+                File parent = file.getParentFile();
+                if (parent != null) {
+                    parent.mkdirs();
+                }
                 DownloadFileRequest downloadFileRequest = new DownloadFileRequest(
                         objectSummary.getBucketName(), objectSummary.getKey());
                 downloadFileRequest.setDownloadFile(file.getAbsolutePath());
@@ -481,6 +478,29 @@ public class AliyunOSSObject {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /**
+     * 读文件内容
+     */
+    public ByteBuffer read() {
+        OSSObject object = getObject();
+        try (Java9InputStream stream = new Java9InputStream(object.getObjectContent())) {
+            int length = (int) object.getObjectMetadata().getContentLength();
+            if (length <= 0) {
+                length = 8 * 1024;
+            }
+            return stream.readAllBytes(length);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * 读UTF8字符串
+     */
+    public String readUtf8() {
+        return StandardCharsets.UTF_8.decode(read()).toString();
     }
 
     /**
@@ -507,6 +527,20 @@ public class AliyunOSSObject {
      */
     public void write(byte[] value) {
         putObject(new ByteArrayInputStream(value));
+    }
+
+    /**
+     * 写文件内容
+     */
+    public void write(ByteBuffer value) {
+        putObject(new ByteBufferInputStream(value));
+    }
+
+    /**
+     * 写UTF8字符串
+     */
+    public void writeUtf8(String value) {
+        write(StandardCharsets.UTF_8.encode(value));
     }
 
     @Override

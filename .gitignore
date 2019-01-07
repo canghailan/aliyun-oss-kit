@@ -3,4 +3,5 @@ target/
 temp/
 *.iml
 *.properties
+*.yml
 .DS_Store
