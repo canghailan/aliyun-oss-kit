@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -333,10 +334,32 @@ public class AliyunOSSFileObject extends AliyunOSSObject
      */
     public URL getURL() {
         try {
-            return new URL(getPublicURIString());
+            return new URL(getURL(new Date(System.currentTimeMillis() + Duration.ofDays(1).toMillis())));
         } catch (MalformedURLException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /**
+     * 获取URL
+     */
+    public String getURL(Date expiration) {
+        String cnameUrl = fileSystem.getFileProvider().getUriFactory()
+                .getCnameUrl(name, expiration);
+        if (cnameUrl != null) {
+            return cnameUrl;
+        }
+
+        String extranetUrl = fileSystem.getFileProvider().getUriFactory()
+                .getExtranetUrl(name);
+        String presignedUrl = oss
+                .generatePresignedUrl(bucketName, key, expiration)
+                .toString();
+        int index = presignedUrl.indexOf('?');
+        if (index < 0) {
+            return extranetUrl;
+        }
+        return extranetUrl + presignedUrl.substring(index);
     }
 
     @Override

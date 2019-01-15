@@ -1,7 +1,8 @@
 package cc.whohow.aliyun.oss.vfs;
 
 import cc.whohow.aliyun.oss.vfs.copy.FileObjectCopier;
-import cc.whohow.aliyun.oss.vfs.operations.*;
+import cc.whohow.aliyun.oss.vfs.operations.GetAccountAlias;
+import cc.whohow.aliyun.oss.vfs.operations.ProcessImage;
 import cc.whohow.vfs.FluentFileObject;
 import cc.whohow.vfs.VirtualFileSystemManager;
 import cc.whohow.vfs.configuration.JsonConfigurationFile;
@@ -16,12 +17,9 @@ import org.junit.Test;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.time.Duration;
 import java.util.Comparator;
 import java.util.NavigableMap;
-import java.util.Properties;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.Executors;
 
 public class TestAliyunOSSFileSystem {
     private static VirtualFileSystemManager vfs;
@@ -440,7 +438,7 @@ public class TestAliyunOSSFileSystem {
     public void testAccountAlias() throws Exception {
         GetAccountAlias getAccountAlias = (GetAccountAlias)
                 vfs.resolveFile("oss://yt-temp/test-fs/url/random.jpg")
-                .getFileOperations().getOperation(GetAccountAlias.class);
+                        .getFileOperations().getOperation(GetAccountAlias.class);
         System.out.println(getAccountAlias.get());
     }
 }

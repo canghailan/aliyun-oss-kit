@@ -39,7 +39,7 @@ public class AliyunOSSSupplier implements Supplier<OSS>, Function<AliyunOSSUri, 
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         oss.shutdown();
     }
 }

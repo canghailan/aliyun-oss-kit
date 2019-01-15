@@ -21,5 +21,5 @@ public class TestIEndpointsProvider {
                 .distinct()
                 .collect(Collectors.toList());
         System.out.println(endpoint);
-     }
+    }
 }
